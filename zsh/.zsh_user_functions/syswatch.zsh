@@ -11,11 +11,13 @@
 #   TW_TEMP_WARN=60          °C yellow threshold
 #   TW_TEMP_HOT=75           °C orange threshold
 #   TW_TEMP_CRIT=85          °C red threshold (also temp bar max)
-#   TW_CPU_MAX_MHZ=5400      CPU freq bar ceiling
-#   TW_GPU_MAX_MHZ=2400      GPU core clock bar ceiling (0 = auto from nvidia-smi)
-#   TW_MEM_MAX_MHZ=9001      GPU mem clock bar ceiling
+#   TW_CPU_MAX_MHZ=5400      CPU freq bar ceiling        (0 = auto from cpuinfo_max_freq) *
+#   TW_GPU_MAX_MHZ=2400      GPU core clock bar ceiling (0 = auto from nvidia-smi) *
+#   TW_MEM_MAX_MHZ=9001      GPU mem clock bar ceiling  (0 = auto from nvidia-smi) *
 #   TW_FAN_MAX_RPM=5500      fan RPM bar ceiling
 #   TW_NO_NVIDIA=1           disable all nvidia-smi calls
+#
+# * setting to 0 queries nvidia-smi at startup for the real max clock
 #
 # Keys:  q quit  +/- speed  c cores  n gpu  h help
 # ──────────────────────────────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ syswatch() {
   local R DIM DIMMER LBL ACC TTL SEC GRN YLW ORG RED BLU
 
   # Init-time
-  local cpu_model nvidia_max interval_cs last_cs
+  local cpu_model nvidia_max mem_max interval_cs last_cs
   local rapl_e_prev rapl_t_prev rapl_pkg_w
 
   # Per-frame data
@@ -67,9 +69,9 @@ syswatch() {
   : ${TW_TEMP_WARN:=60}        # °C yellow threshold
   : ${TW_TEMP_HOT:=75}         # °C orange threshold
   : ${TW_TEMP_CRIT:=85}        # °C red threshold (also temp bar max)
-  : ${TW_CPU_MAX_MHZ:=5400}    # CPU freq bar ceiling
-  : ${TW_GPU_MAX_MHZ:=0}    # GPU core clock bar ceiling (0 = auto from nvidia-smi)
-  : ${TW_MEM_MAX_MHZ:=9001}    # GPU mem clock bar ceiling
+  : ${TW_CPU_MAX_MHZ:=0}       # CPU freq bar ceiling        (0 = auto from cpuinfo_max_freq) *
+  : ${TW_GPU_MAX_MHZ:=0}       # GPU core clock bar ceiling (0 = auto from nvidia-smi) *
+  : ${TW_MEM_MAX_MHZ:=0}       # GPU mem clock bar ceiling  (0 = auto from nvidia-smi) *
   : ${TW_FAN_MAX_RPM:=5500}    # fan RPM bar ceiling
   : ${TW_NO_NVIDIA:=0}         # set to 1 to disable all nvidia-smi calls
 
@@ -311,6 +313,14 @@ syswatch() {
     }'
   }
 
+  _cpu_max() {
+    # Non-zero TW_CPU_MAX_MHZ = use it as the bar ceiling; 0 = auto from sysfs
+    (( CPU_MAX > 0 )) && { printf '%d' "${CPU_MAX}"; return; }
+    local v
+    v=$(< /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq 2>/dev/null)
+    printf '%d' "$(( ${v:-5400000} / 1000 ))"
+  }
+
   _nvidia_max() {
     # Non-zero TW_GPU_MAX_MHZ = use it as the bar ceiling; 0 = auto from nvidia-smi
     (( GPU_MAX_DEF > 0 )) && { printf '%d' "${GPU_MAX_DEF}"; return; }
@@ -321,6 +331,18 @@ syswatch() {
     local v
     v=$(nvidia-smi --query-gpu=clocks.max.gr --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')
     printf '%d' "${v:-1000}"
+  }
+
+  _mem_max() {
+    # Non-zero TW_MEM_MAX_MHZ = use it as the bar ceiling; 0 = auto from nvidia-smi
+    (( MEM_MAX > 0 )) && { printf '%d' "${MEM_MAX}"; return; }
+    if (( NO_NVIDIA )) || ! command -v nvidia-smi &>/dev/null; then
+      printf '%d' "${MEM_MAX}"
+      return
+    fi
+    local v
+    v=$(nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')
+    printf '%d' "${v:-9001}"
   }
 
   # per-core lines: "mhz cpu coreid temp" sorted desc by mhz
@@ -381,7 +403,9 @@ syswatch() {
 
   # ── init ─────────────────────────────────────────────────────────────────────
   cpu_model=$(awk -F': ' '/^model name/{gsub(/\(R\)|\(TM\)/,"",$2); gsub(/  +/," ",$2); print $2; exit}' /proc/cpuinfo)
+  CPU_MAX=$(_cpu_max)
   nvidia_max=$(_nvidia_max)
+  mem_max=$(_mem_max)
   interval_cs=$(( int(interval * 100) ))
   (( interval_cs < INTERVAL_MIN_CS )) && interval_cs=${INTERVAL_MIN_CS}
   (( interval_cs > INTERVAL_MAX_CS )) && interval_cs=${INTERVAL_MAX_CS}
@@ -530,7 +554,7 @@ syswatch() {
           _trow "gpu temp (EC)"  "${gpu_ec:-0}"
           _pn ""
           _frow "core clock"     "${nvc:-0}"   "${nvidia_max}"
-          _frow "mem clock"      "${nvm:-0}"   "${MEM_MAX}"
+          _frow "mem clock"      "${nvm:-0}"   "${mem_max}"
           _prow "utilization"    "${nvu:-0}"
           if (( nvvt > 0 )); then
             vp=$(( nvvu * 100 / nvvt ))
