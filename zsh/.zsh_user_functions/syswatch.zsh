@@ -569,7 +569,7 @@ syswatch() {
       fi
 
       # ── Storage / Memory / Fans — plain text, no bars ───────────────────────
-      _sec "Storage / Memory / Fans"
+      _sec "Storage / Memory / Network / Fans"
       [[ ${nvme:-0} -gt 0 ]] && _p "  ${LBL}nvme${R} $(_tc ${nvme})${nvme}°C${R}"
       if (( ${#ram_dimms[@]} > 0 )); then
         local di=1
