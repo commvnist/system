@@ -55,6 +55,7 @@ tempwatch() {
   local line _mhz _rest _cpu _phys _temp cf ct2 ctype
   local sdata
   local v vp vc
+  local rp rc
 
   # ── config assignments ───────────────────────────────────────────────────────
   interval=${1:-${TW_INTERVAL:-0.5}}
@@ -511,7 +512,6 @@ tempwatch() {
       [[ ${wifi:-0} -gt 0 ]] && _p "   ${LBL}wifi${R} $(_tc ${wifi})${wifi}°C${R}"
       _pn ""
       if (( ram_total > 0 )); then
-        local rp rc
         rp=$(( ram_used * 100 / ram_total ))
         rc=$(_pc "${rp}")
         _p  "  ${LBL}${(r:18:):-ram}${R} "
