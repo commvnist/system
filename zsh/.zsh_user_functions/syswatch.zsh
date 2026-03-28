@@ -205,7 +205,7 @@ syswatch() {
     col=$(_pc "${pct}")
     _p  "  ${LBL}${(r:18:)label}${R} "
     _bar "${pct}" 100 "${col}"
-    _pn " ${col}${pct}%${R}"
+    _pn " ${col}${(l:3:)pct}%${R}"
   }
 
   # ── data collectors ──────────────────────────────────────────────────────────
