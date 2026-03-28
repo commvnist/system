@@ -548,10 +548,10 @@ syswatch() {
       fi
       _pn "  ${LBL}fan1${R} ${BLU}${fan1} RPM${R}   ${LBL}fan2${R} ${BLU}${fan2} RPM${R}"
 
-      # ── atomic flush — clear screen then write complete frame ────────────────
-      tput cup 0 0
-      printf $'\e[2J'
+      # ── atomic flush — overwrite in place, then erase any leftover lines ───────
+      printf $'\e[H'
       _flush
+      printf $'\e[J'
     fi
 
     sleep 0.05
