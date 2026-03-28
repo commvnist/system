@@ -44,5 +44,5 @@ source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring
 # fzf
 source <(fzf --zsh)
 
-# tempwatch
-source ~/.zsh_user_functions/tempwatch.zsh
+# syswatch
+source ~/.zsh_user_functions/syswatch.zsh

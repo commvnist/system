@@ -1,7 +1,7 @@
-# ── tempwatch ──────────────────────────────────────────────────────────────────
+# ── syswatch ───────────────────────────────────────────────────────────────────
 # All-in-one performance & thermal monitor for ThinkPad P16 Gen 2 (zsh)
 #
-# Usage:  tempwatch [interval]   (default: 0.5s, decimals ok)
+# Usage:  syswatch [interval]   (default: 0.5s, decimals ok)
 #
 # Environment variables:
 #   TW_INTERVAL=0.5          default refresh interval (seconds)
@@ -20,7 +20,7 @@
 # Keys:  q quit  +/- speed  c cores  n gpu  h help
 # ──────────────────────────────────────────────────────────────────────────────
 
-tempwatch() {
+syswatch() {
   emulate -L zsh
   setopt local_options pipe_fail
 
@@ -38,6 +38,7 @@ tempwatch() {
 
   # Init-time
   local cpu_model nvidia_max interval_cs last_cs
+  local rapl_e_prev rapl_t_prev rapl_pkg_w
 
   # Per-frame data
   local now_cs key
@@ -49,6 +50,7 @@ tempwatch() {
   local bpct bwatt bst
   local nvc nvm nvu nvp nvps nvvu nvvt nvt
   local ram_used ram_total
+  local rapl_e_now rapl_t_now rapl_de rapl_dt rapl_emax sys_pwr_w
 
   # Render temporaries
   local _buf disp_int ts bcol clabel di
@@ -118,6 +120,13 @@ tempwatch() {
     if   (( $1 < 30 )); then printf '%s' $'\e[92m'
     elif (( $1 < 60 )); then printf '%s' $'\e[93m'
     elif (( $1 < 85 )); then printf '%s' $'\e[38;5;208m'
+    else                     printf '%s' $'\e[91m'
+    fi
+  }
+  _wc() {   # watt color: _wc <watts>
+    if   (( $1 < 20 )); then printf '%s' $'\e[92m'
+    elif (( $1 < 45 )); then printf '%s' $'\e[93m'
+    elif (( $1 < 80 )); then printf '%s' $'\e[38;5;208m'
     else                     printf '%s' $'\e[91m'
     fi
   }
@@ -359,6 +368,9 @@ tempwatch() {
   interval_cs=$(( int(interval * 100) ))
   (( interval_cs < INTERVAL_MIN_CS )) && interval_cs=${INTERVAL_MIN_CS}
   (( interval_cs > INTERVAL_MAX_CS )) && interval_cs=${INTERVAL_MAX_CS}
+  rapl_e_prev=0
+  rapl_t_prev=0
+  rapl_pkg_w=0
 
   printf $'\e[?25l'
   tput smcup 2>/dev/null
@@ -405,9 +417,25 @@ tempwatch() {
       bi=($(_battery))
       bpct=${bi[1]}; bwatt=${bi[2]}; bst=${bi[3]}
 
+      # RAPL CPU package power (uJ counter delta / us elapsed = W)
+      rapl_e_now=$(< /sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj 2>/dev/null) || rapl_e_now=0
+      rapl_t_now=$(( int(EPOCHREALTIME * 1000000) ))
+      if (( rapl_e_prev > 0 && rapl_t_now > rapl_t_prev )); then
+        rapl_de=$(( rapl_e_now - rapl_e_prev ))
+        if (( rapl_de < 0 )); then
+          rapl_emax=$(< /sys/class/powercap/intel-rapl/intel-rapl:0/max_energy_range_uj 2>/dev/null) || rapl_emax=0
+          (( rapl_emax > 0 )) && rapl_de=$(( rapl_de + rapl_emax ))
+        fi
+        rapl_dt=$(( rapl_t_now - rapl_t_prev ))
+        (( rapl_dt > 0 )) && rapl_pkg_w=$(( rapl_de / rapl_dt )) || rapl_pkg_w=0
+      fi
+      rapl_e_prev=${rapl_e_now}
+      rapl_t_prev=${rapl_t_now}
+
       nv=($(_nvidia))
       nvc=${nv[1]}; nvm=${nv[2]}; nvu=${nv[3]}; nvp=${nv[4]}
       nvps=${nv[5]}; nvvu=${nv[6]}; nvvt=${nv[7]}; nvt=${nv[8]}
+      sys_pwr_w=$(( rapl_pkg_w + nvp ))
 
       read ram_used ram_total <<< $(awk '
         /^MemTotal/     { t=$2 }
@@ -424,7 +452,7 @@ tempwatch() {
       ts=$(date '+%H:%M:%S')
 
       _pn ""
-      _p  "  ${TTL}tempwatch${R}  ${DIM}${ts}  ${disp_int}s  +/- speed  c cores  n gpu  q quit${R}"
+      _p  "  ${TTL}syswatch${R}  ${DIM}${ts}  ${disp_int}s  +/- speed  c cores  n gpu  q quit${R}"
       if (( SHOW_HELP )); then
         _pn ""
         _pn "  ${DIM}TW_CORES=N  TW_INTERVAL=N  TW_INTERVAL_MIN=N  TW_INTERVAL_MAX=N${R}"
@@ -437,7 +465,7 @@ tempwatch() {
       [[ "${bst}" == 'Charging'    ]] && bcol="${BLU}"
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 40 )) && bcol="${ORG}"
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 20 )) && bcol="${RED}"
-      _pn "  ${LBL}src${R} ${ACC}${pwrsrc}${R}   ${LBL}bat${R} ${bcol}${bpct}% ${bst} ${bwatt}W${R}   ${LBL}profile${R} ${ACC}${prof}${R}   ${LBL}cores${R} ${ACC}${nact}/${ncpu}${R}"
+      _pn "  ${LBL}src${R} ${ACC}${pwrsrc}${R}   ${LBL}bat${R} ${bcol}${bpct}% ${bst} ${bwatt}W${R}   ${LBL}sys pwr${R} $(_wc ${sys_pwr_w})${sys_pwr_w}W${R}   ${LBL}profile${R} ${ACC}${prof}${R}   ${LBL}cores${R} ${ACC}${nact}/${ncpu}${R}"
 
       # ── CPU ─────────────────────────────────────────────────────────────────
       _sec "CPU  (${cpu_model})"
@@ -447,7 +475,7 @@ tempwatch() {
       _frow "freq max"      "${fmax:-0}"
       _frow "freq avg"      "${favg:-0}"
       _pn ""
-      _pn "  ${LBL}gov${R} ${ACC}${gov}${R}   ${LBL}epp${R} ${ACC}${epp}${R}   ${LBL}turbo${R} ${ACC}${turbo}${R}   ${LBL}hwp boost${R} ${ACC}${hwpb}${R}"
+      _pn "  ${LBL}gov${R} ${ACC}${gov}${R}   ${LBL}epp${R} ${ACC}${epp}${R}   ${LBL}turbo${R} ${ACC}${turbo}${R}   ${LBL}hwp boost${R} ${ACC}${hwpb}${R}   ${LBL}cpu pwr${R} $(_wc ${rapl_pkg_w})${rapl_pkg_w}W${R}"
 
       # ── per-core ────────────────────────────────────────────────────────────
       if (( SHOW_CORES )) && (( ${#cl[@]} > 0 )); then
@@ -495,7 +523,7 @@ tempwatch() {
             _pn " ${vc}${nvvu}/${nvvt} MiB${R}"
           fi
           _pn ""
-          _pn "  ${LBL}power${R} ${ACC}${nvp}W${R}   ${LBL}pstate${R} ${ACC}${nvps}${R}"
+          _pn "  ${LBL}pstate${R} ${ACC}${nvps}${R}   ${LBL}gpu pwr${R} $(_wc ${nvp})${nvp}W${R}"
         fi
       fi
 
