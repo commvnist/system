@@ -59,7 +59,7 @@ tempwatch() {
   interval=${1:-${TW_INTERVAL:-0.5}}
   INTERVAL_MIN_CS=$(( int(${TW_INTERVAL_MIN:-0.5} * 100) ))
   INTERVAL_MAX_CS=$(( int(${TW_INTERVAL_MAX:-10}  * 100) ))
-  TOP_CORES=${TW_CORES:-0}
+  TOP_CORES=${TW_CORES:-8}
   T_WARN=${TW_TEMP_WARN:-60}
   T_HOT=${TW_TEMP_HOT:-75}
   T_CRIT=${TW_TEMP_CRIT:-85}
