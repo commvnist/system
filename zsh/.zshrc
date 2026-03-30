@@ -32,23 +32,21 @@ setopt HIST_IGNORE_DUPS     # don't record consecutive duplicates
 setopt HIST_IGNORE_SPACE    # don't record commands prefixed with a space
 setopt HIST_REDUCE_BLANKS   # strip superfluous blanks
 
-# zsh-autocomplete
-source /usr/share/zsh/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh
-
-# zsh-autosuggestions
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
-
-# zsh-autopair
-source /usr/share/zsh/plugins/zsh-autopair/zsh-autopair.plugin.zsh
+# plugins
+_zsh_plugins=(
+  zsh-autocomplete/zsh-autocomplete.plugin.zsh
+  zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
+  zsh-autopair/zsh-autopair.plugin.zsh
+  zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
+  zsh-history-substring-search/zsh-history-substring-search.zsh
+)
+for _plugin in "${_zsh_plugins[@]}"; do
+  source "/usr/share/zsh/plugins/${_plugin}"
+done
+unset _zsh_plugins _plugin
 
 # Ctrl+F: accept autosuggestion
 bindkey '^F' autosuggest-accept
-
-# zsh-syntax-highlighting
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
-
-# zsh-history-substring-search
-source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
 
 # fzf
 source <(fzf --zsh)

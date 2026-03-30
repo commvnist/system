@@ -24,7 +24,7 @@
 
 syswatch() {
   emulate -L zsh
-  setopt local_options pipe_fail
+  setopt local_options local_traps pipe_fail
 
   # ── declare all locals up front to prevent zsh assignment leaks ──────────────
   # Config
@@ -112,7 +112,7 @@ syswatch() {
   # All rendering appends to _buf; _flush prints atomically to avoid flicker.
   _buf=''
   _p()     { _buf+="${*}"; }
-  _pn()    { _buf+="${*}"$'\n'; }
+  _pn()    { _buf+="${*}"$'\e[K\n'; }
   _flush() { printf '%s' "${_buf}"; _buf=''; }
 
   # ── color selectors — return ANSI escape to stdout for use in $(...) ─────────
@@ -148,17 +148,11 @@ syswatch() {
   }
 
   # ── render primitives ────────────────────────────────────────────────────────
-  _bw() {   # bar width based on terminal width
-    local bw
+  _bar() {  # _bar <val> <max> <color>
+    local bw val max f e
     bw=$(( ${COLUMNS:-80} - 32 ))
     (( bw <  8 )) && bw=8
     (( bw > 36 )) && bw=36
-    printf '%d' "${bw}"
-  }
-
-  _bar() {  # _bar <val> <max> <color>
-    local bw val max f e
-    bw=$(_bw)
     val=${1}; max=${2}
     f=$(( val * bw / ( max > 0 ? max : 1 ) ))
     (( f > bw )) && f=${bw}
@@ -187,7 +181,7 @@ syswatch() {
     col=$(_tc "${temp}")
     _p  "  ${LBL}${(r:18:)label}${R} "
     _bar "${temp}" "${T_MAX}" "${col}"
-    _pn " ${col}${temp}°C${R}"
+    _pn " ${col}${(l:3:)temp}°C${R}"
   }
 
   _frow() {  # freq bar row: _frow <label> <mhz> [max]
@@ -211,11 +205,6 @@ syswatch() {
   # ── data collectors ──────────────────────────────────────────────────────────
   # All collectors run sensors/sysfs once per call; sensors is called per-frame
   # in the main loop and results passed where possible to avoid redundant forks.
-
-  _sensors_once() {
-    # Cache sensors output for one frame — called once, result stored in $1 (nameref)
-    sensors 2>/dev/null
-  }
 
   _from_block() {  # _from_block <adapter> <label> [sensors_output]
     local input
@@ -290,7 +279,8 @@ syswatch() {
     ef=$(< /sys/class/power_supply/BAT0/energy_full 2>/dev/null) || ef=1
     pn=$(< /sys/class/power_supply/BAT0/power_now   2>/dev/null) || pn=0
     st=$(< /sys/class/power_supply/BAT0/status      2>/dev/null) || st='?'
-    printf '%d %d %s' "$(( ef > 0 ? en * 100 / ef : 0 ))" "$(( pn / 1000 ))" "${st}"
+    # Newline-separated so multi-word status (e.g. "Not charging") is preserved
+    printf '%d\n%d\n%s\n' "$(( ef > 0 ? en * 100 / ef : 0 ))" "$(( pn / 1000 ))" "${st}"
   }
 
   _nvidia() {
@@ -349,8 +339,7 @@ syswatch() {
   # coretemp "Core N" == /proc/cpuinfo "core id" N (direct match, no topology math)
   _core_lines() {
     local limit=${1:-0}
-    local sout
-    sout=$(sensors 2>/dev/null)
+    local sout=${2:-$(sensors 2>/dev/null)}
 
     local -A ct cm_mhz cm_coreid
     local ci tmp mz coreid
@@ -415,6 +404,8 @@ syswatch() {
 
   printf $'\e[?25l'
   tput smcup 2>/dev/null
+  trap 'tput rmcup 2>/dev/null; printf $'"'"'\e[?25h'"'"'' EXIT
+  trap 'return 130' INT TERM
 
   # ── main loop ────────────────────────────────────────────────────────────────
   while true; do
@@ -422,7 +413,7 @@ syswatch() {
     key=''
     IFS= read -r -s -k 1 -t 0.05 key 2>/dev/null || true
     case ${key} in
-      q|Q) break ;;
+      q|Q|$'\x04') break ;;
       +)   (( interval_cs -= 50 )); (( interval_cs < INTERVAL_MIN_CS )) && interval_cs=${INTERVAL_MIN_CS} ;;
       -)   (( interval_cs += 50 )); (( interval_cs > INTERVAL_MAX_CS )) && interval_cs=${INTERVAL_MAX_CS} ;;
       c)   (( SHOW_CORES  ^= 1 )) ;;
@@ -455,7 +446,7 @@ syswatch() {
       pwrsrc=$(< /sys/class/power_supply/AC/online 2>/dev/null) || pwrsrc='0'
       [[ "${pwrsrc}" == '1' ]] && pwrsrc='AC' || pwrsrc='BAT'
 
-      bi=($(_battery))
+      bi=("${(@f)$(_battery)}")
       bpct=${bi[1]}; bwatt=${bi[2]}; bst=${bi[3]}
 
       # RAPL CPU package power (uJ counter delta / us elapsed = W)
@@ -478,14 +469,14 @@ syswatch() {
       nvps=${nv[5]}; nvvu=${nv[6]}; nvvt=${nv[7]}; nvt=${nv[8]}
       sys_pwr_w=$(( rapl_pkg_w + nvp ))
 
-      read ram_used ram_total <<< $(awk '
+      read ram_used ram_total < <(awk '
         /^MemTotal/     { t=$2 }
         /^MemAvailable/ { a=$2 }
         END { printf "%d %d", int((t-a)/1024), int(t/1024) }
       ' /proc/meminfo)
 
       cl=()
-      (( SHOW_CORES )) && cl=("${(@f)$(_core_lines ${TOP_CORES})}")
+      (( SHOW_CORES )) && cl=("${(@f)$(_core_lines ${TOP_CORES} "${sdata}")}")
 
       # ── build frame buffer ───────────────────────────────────────────────────
       _buf=''
@@ -506,7 +497,7 @@ syswatch() {
       [[ "${bst}" == 'Charging'    ]] && bcol="${BLU}"
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 40 )) && bcol="${ORG}"
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 20 )) && bcol="${RED}"
-      _pn "  ${LBL}src${R} ${ACC}${pwrsrc}${R}   ${LBL}bat${R} ${bcol}${bpct}% ${bst} ${bwatt}W${R}   ${LBL}sys pwr${R} $(_wc ${sys_pwr_w})${sys_pwr_w}W${R}   ${LBL}profile${R} ${ACC}${prof}${R}   ${LBL}cores${R} ${ACC}${nact}/${ncpu}${R}"
+      _pn "  ${LBL}src${R} ${ACC}${pwrsrc}${R}   ${LBL}bat${R} ${bcol}${(l:3:)bpct}% ${bst} ${(l:3:)bwatt}W${R}   ${LBL}sys pwr${R} $(_wc ${sys_pwr_w})${(l:3:)sys_pwr_w}W${R}   ${LBL}profile${R} ${ACC}${prof}${R}   ${LBL}cores${R} ${ACC}${nact}/${ncpu}${R}"
 
       # ── CPU ─────────────────────────────────────────────────────────────────
       _sec "CPU  (${cpu_model})"
@@ -516,7 +507,7 @@ syswatch() {
       _frow "freq max"      "${fmax:-0}"
       _frow "freq avg"      "${favg:-0}"
       _pn ""
-      _pn "  ${LBL}gov${R} ${ACC}${gov}${R}   ${LBL}epp${R} ${ACC}${epp}${R}   ${LBL}turbo${R} ${ACC}${turbo}${R}   ${LBL}hwp boost${R} ${ACC}${hwpb}${R}   ${LBL}cpu pwr${R} $(_wc ${rapl_pkg_w})${rapl_pkg_w}W${R}"
+      _pn "  ${LBL}gov${R} ${ACC}${gov}${R}   ${LBL}epp${R} ${ACC}${epp}${R}   ${LBL}turbo${R} ${ACC}${turbo}${R}   ${LBL}hwp boost${R} ${ACC}${hwpb}${R}   ${LBL}cpu pwr${R} $(_wc ${rapl_pkg_w})${(l:3:)rapl_pkg_w}W${R}"
 
       # ── per-core ────────────────────────────────────────────────────────────
       if (( SHOW_CORES )) && (( ${#cl[@]} > 0 )); then
@@ -536,7 +527,7 @@ syswatch() {
           _p "  ${DIM}c${(l:2::0:)_cpu}[${ctype}]${R} "
           _bar "${_mhz}" "${CPU_MAX}" "${cf}"
           _p " ${cf}${(l:4:)_mhz}MHz${R}"
-          (( _temp > 0 )) && _p "  ${ct2}${_temp}°${R}"
+          (( _temp > 0 )) && _p "  ${ct2}${(l:2:)_temp}°${R}"
           _pn ""
         done
       fi
@@ -572,7 +563,7 @@ syswatch() {
       _sec "Storage / Memory / Network / Fans"
       [[ ${nvme:-0} -gt 0 ]] && _p "  ${LBL}nvme${R} $(_tc ${nvme})${nvme}°C${R}"
       if (( ${#ram_dimms[@]} > 0 )); then
-        local di=1
+        di=1
         for v in "${ram_dimms[@]}"; do
           (( v > 0 )) && _p "   ${LBL}dimm${di}${R} $(_tc ${v})${v}°C${R}"
           (( di++ ))
@@ -587,7 +578,7 @@ syswatch() {
         _bar "${ram_used}" "${ram_total}" "${rc}"
         _pn " ${rc}${ram_used}/${ram_total} MiB${R}"
       fi
-      _pn "  ${LBL}fan1${R} ${BLU}${fan1} RPM${R}   ${LBL}fan2${R} ${BLU}${fan2} RPM${R}"
+      _pn "  ${LBL}fan1${R} ${BLU}${(l:4:)fan1} RPM${R}   ${LBL}fan2${R} ${BLU}${(l:4:)fan2} RPM${R}"
 
       # ── atomic flush — overwrite in place, then erase any leftover lines ───────
       printf $'\e[H'
@@ -597,7 +588,4 @@ syswatch() {
 
     sleep 0.05
   done
-
-  tput rmcup 2>/dev/null
-  printf $'\e[?25h'
 }
