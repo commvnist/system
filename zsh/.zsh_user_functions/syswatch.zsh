@@ -557,7 +557,7 @@ syswatch() {
       [[ "${bst}" == 'Charging'    ]] && bcol="${BLU}"
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 40 )) && bcol="${ORG}"
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 20 )) && bcol="${RED}"
-      _pn "  ${LBL}src${R} ${ACC}${pwrsrc}${R}   ${LBL}bat${R} ${bcol}${(l:3:)bpct}% ${bst} ${(l:3:)bwatt}W${R}   ${LBL}sys pwr${R} $(_wc ${sys_pwr_w})${(l:3:)sys_pwr_w}W${R}   ${LBL}profile${R} ${ACC}${prof}${R}   ${LBL}cores${R} ${ACC}${nact}/${ncpu}${R}"
+      _pn "  ${LBL}src${R} ${ACC}${pwrsrc}${R}   ${LBL}bat${R} ${bcol}${(l:3:)bpct}% ${bst:l} ${(l:3:)bwatt}W${R}   ${LBL}sys pwr${R} $(_wc ${sys_pwr_w})${(l:3:)sys_pwr_w}W${R}   ${LBL}profile${R} ${ACC}${prof}${R}   ${LBL}cores${R} ${ACC}${nact}/${ncpu}${R}"
 
       # ── CPU ─────────────────────────────────────────────────────────────────
       _sec "CPU  (${cpu_model})"
