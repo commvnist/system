@@ -54,5 +54,8 @@ source <(fzf --zsh)
 # syswatch
 source ~/.zsh_user_functions/syswatch.zsh
 
+# obsidian movie entry
+source ~/.zsh_user_functions/obsidian_movie_entry.zsh
+
 # ollama-cuda
 source /etc/profile
