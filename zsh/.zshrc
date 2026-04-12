@@ -12,6 +12,9 @@ bindkey "^[[1;5D" backward-word
 bindkey "^[Od" backward-word
 bindkey "^[Oc" forward-word
 
+# sem-cli
+alias sem="sem-cli"
+
 # bat
 alias cat="bat"
 

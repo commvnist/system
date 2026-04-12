@@ -46,6 +46,7 @@ syswatch() {
   # Init-time
   local cpu_model nvidia_max mem_max
   local -i interval_cs last_cs
+  local -i cpu_idle_prev cpu_total_prev
   local -i rapl_e_prev rapl_t_prev rapl_pkg_w
 
   # Per-frame data
@@ -53,7 +54,9 @@ syswatch() {
   local key
   local cpu_pkg cpu_cmax gpu_ec nvme wifi fan1 fan2
   local -a fs ps bi nv cl ram_dimms gpu_procs cpu_procs mem_procs
+  local -a cu
   local fmin fmax favg ncpu nact
+  local -i cpu_usage cpu_idle_now cpu_total_now cpu_delta cpu_idle_delta
   local gov epp turbo hwpb pmin pmax
   local prof pwrsrc
   local bpct bwatt bst
@@ -339,6 +342,18 @@ syswatch() {
     ' /proc/cpuinfo
   }
 
+  _sw_cpu_totals() {  # returns: "idle total" from aggregate /proc/stat cpu row
+    awk '
+      /^cpu / {
+        idle=$5+$6
+        total=0
+        for (i=2; i<=NF; i++) total+=$i
+        printf "%d %d", idle, total
+        exit
+      }
+    ' /proc/stat
+  }
+
   _sw_pstate_info() {
     local nt hb mn mx epp gov ts
     nt=$(< /sys/devices/system/cpu/intel_pstate/no_turbo              2>/dev/null) || nt=1
@@ -542,6 +557,9 @@ syswatch() {
   interval_cs=$(_sw_centiseconds "${interval}" "${interval_default}")
   (( interval_cs < INTERVAL_MIN_CS )) && interval_cs=${INTERVAL_MIN_CS}
   (( interval_cs > INTERVAL_MAX_CS )) && interval_cs=${INTERVAL_MAX_CS}
+  cu=($(_sw_cpu_totals))
+  cpu_idle_prev=${cu[1]:-0}
+  cpu_total_prev=${cu[2]:-0}
   rapl_e_prev=0
   rapl_t_prev=0
   rapl_pkg_w=0
@@ -584,6 +602,19 @@ syswatch() {
 
       fs=($(_sw_freq_summary))
       fmin=${fs[1]}; fmax=${fs[2]}; favg=${fs[3]}; ncpu=${fs[4]}; nact=${fs[5]}
+
+      cu=($(_sw_cpu_totals))
+      cpu_idle_now=${cu[1]:-0}
+      cpu_total_now=${cu[2]:-0}
+      cpu_delta=$(( cpu_total_now - cpu_total_prev ))
+      cpu_idle_delta=$(( cpu_idle_now - cpu_idle_prev ))
+      if (( cpu_delta > 0 && cpu_idle_delta >= 0 )); then
+        cpu_usage=$(( (cpu_delta - cpu_idle_delta) * 100 / cpu_delta ))
+      else
+        cpu_usage=0
+      fi
+      cpu_idle_prev=${cpu_idle_now}
+      cpu_total_prev=${cpu_total_now}
 
       ps=($(_sw_pstate_info))
       gov=${ps[1]}; epp=${ps[2]}; turbo=${ps[3]}; hwpb=${ps[4]}; pmin=${ps[5]}; pmax=${ps[6]}
@@ -666,6 +697,8 @@ syswatch() {
       _sw_sec "CPU  (${cpu_model})"
       _sw_temp_row "package id 0"  "${cpu_pkg:-0}"
       _sw_temp_row "core max"      "${cpu_cmax:-0}"
+      _sw_pn ""
+      _sw_percent_row "total usage" "${cpu_usage:-0}"
       _sw_pn ""
       _sw_freq_row "freq min"      "${fmin:-0}"
       _sw_freq_row "freq avg"      "${favg:-0}"
