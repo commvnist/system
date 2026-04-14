@@ -12,9 +12,6 @@ bindkey "^[[1;5D" backward-word
 bindkey "^[Od" backward-word
 bindkey "^[Oc" forward-word
 
-# sem-cli
-alias sem="sem-cli"
-
 # bat
 alias cat="bat"
 
@@ -64,9 +61,13 @@ setopt HIST_IGNORE_DUPS     # don't record consecutive duplicates
 setopt HIST_IGNORE_SPACE    # don't record commands prefixed with a space
 setopt HIST_REDUCE_BLANKS   # strip superfluous blanks
 
+# copminit
+
+autoload -U compinit; compinit
+
 # plugins
 _zsh_plugins=(
-  zsh-autocomplete/zsh-autocomplete.plugin.zsh
+  fzf-tab/fzf-tab.plugin.zsh
   zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
   zsh-autopair/zsh-autopair.plugin.zsh
   zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
@@ -88,11 +89,3 @@ source ~/.scripts/syswatch.zsh
 
 # obsidian movie entry
 source ~/.scripts/obsidian_movie_entry.zsh
-
-# ollama-cuda
-source /etc/profile
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/home/naek/.lmstudio/bin"
-# End of LM Studio CLI section
-
