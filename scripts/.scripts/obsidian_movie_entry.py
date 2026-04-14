@@ -55,8 +55,7 @@ def fetch_html(url: str) -> str:
         url,
         headers={
             "User-Agent": (
-                "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) "
-                "Gecko/20100101 Firefox/120.0"
+                "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"
             ),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
@@ -114,13 +113,17 @@ def search_tmdb(query: str) -> list[SearchResult]:
             r'<span class="release_date">[^<]*?(\d{4})[^<]*</span>',
             chunk,
         )
-        desc_match = re.search(r'<div class="overview">\s*<p>(.*?)</p>', chunk, re.DOTALL)
+        desc_match = re.search(
+            r'<div class="overview">\s*<p>(.*?)</p>', chunk, re.DOTALL
+        )
 
         results.append(
             SearchResult(
                 title=clean_text(title_match.group(1)) if title_match else "Unknown",
                 year=year_match.group(1) if year_match else "",
-                description=clean_text(desc_match.group(1)) if desc_match else "(No description)",
+                description=clean_text(desc_match.group(1))
+                if desc_match
+                else "(No description)",
                 url=f"{TMDB_BASE_URL}{href_match.group(1)}",
             )
         )
@@ -247,19 +250,25 @@ def parse_tmdb(html: str) -> MovieMetadata:
             if not char_match or not name_match:
                 continue
 
-            roles = [role.strip() for role in clean_text(char_match.group(1)).split(",")]
+            roles = [
+                role.strip() for role in clean_text(char_match.group(1)).split(",")
+            ]
             if "Director" in roles:
                 directors.append(clean_text(name_match.group(1)))
 
     cast = parse_cast(html)
-    return MovieMetadata(title=title, year=year, genres=genres, directors=directors, cast=cast)
+    return MovieMetadata(
+        title=title, year=year, genres=genres, directors=directors, cast=cast
+    )
 
 
 def parse_cast(html: str) -> list[str]:
     cast: list[str] = []
     cast_match = re.search(r'<ol class="people scroller">(.*?)</ol>', html, re.DOTALL)
     if cast_match:
-        for card in re.findall(r'<li class="card">(.*?)</li>', cast_match.group(1), re.DOTALL):
+        for card in re.findall(
+            r'<li class="card">(.*?)</li>', cast_match.group(1), re.DOTALL
+        ):
             name_match = re.search(r"<p>\s*<a[^>]*>([^<]+)</a>\s*</p>", card)
             if name_match:
                 cast.append(clean_text(name_match.group(1)))
@@ -268,7 +277,9 @@ def parse_cast(html: str) -> list[str]:
 
     cast_section = re.search(r"Top Billed Cast.*?<ol[^>]*>(.*?)</ol>", html, re.DOTALL)
     if cast_section:
-        for card in re.findall(r"<li[^>]*>(.*?)</li>", cast_section.group(1), re.DOTALL):
+        for card in re.findall(
+            r"<li[^>]*>(.*?)</li>", cast_section.group(1), re.DOTALL
+        ):
             name_match = re.search(r"<p>\s*<a[^>]*>([^<]+)</a>\s*</p>", card)
             if name_match:
                 cast.append(clean_text(name_match.group(1)))
@@ -317,7 +328,9 @@ def sanitize_filename(title: str) -> str:
 
 
 def movies_dir() -> Path:
-    return Path(os.environ.get("OBSIDIAN_MOVIES_DIR", str(DEFAULT_MOVIES_DIR))).expanduser()
+    return Path(
+        os.environ.get("OBSIDIAN_MOVIES_DIR", str(DEFAULT_MOVIES_DIR))
+    ).expanduser()
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -328,6 +341,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "url",
         nargs="?",
         help="TMDB movie URL. If omitted, search TMDB interactively.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview output without writing to file",
     )
     return parser.parse_args(argv)
 
@@ -376,6 +394,16 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     target_dir = movies_dir()
+    dry_run = args.dry_run
+
+    if dry_run:
+        print("---")
+        print("dry run preview:")
+        print(build_entry(metadata, rating, finished))
+        print("---")
+        print("Use --dry-run=false to write the file")
+        return 0
+
     target_dir.mkdir(parents=True, exist_ok=True)
     filepath = target_dir / f"{filename}.md"
 

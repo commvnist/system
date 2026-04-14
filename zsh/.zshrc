@@ -91,3 +91,8 @@ source ~/.scripts/obsidian_movie_entry.zsh
 
 # ollama-cuda
 source /etc/profile
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/home/naek/.lmstudio/bin"
+# End of LM Studio CLI section
+
