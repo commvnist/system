@@ -1,0 +1,8 @@
+{
+  "uuid": "syswatch@commvnist",
+  "name": "Syswatch",
+  "description": "Compact system monitor for the GNOME top bar.",
+  "shell-version": ["50"],
+  "url": "https://github.com/commvnist/dotfiles",
+  "version": 1
+}

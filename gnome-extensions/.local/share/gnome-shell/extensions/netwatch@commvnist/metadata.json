@@ -1,0 +1,8 @@
+{
+  "uuid": "netwatch@commvnist",
+  "name": "Netwatch",
+  "description": "Compact network monitor for the GNOME top bar.",
+  "shell-version": ["50"],
+  "url": "https://github.com/commvnist/dotfiles",
+  "version": 1
+}

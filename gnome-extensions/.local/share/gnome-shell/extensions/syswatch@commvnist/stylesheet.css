@@ -1,0 +1,52 @@
+.syswatch-panel {
+  spacing: 4px;
+  font-family: "FiraCode Nerd Font Mono", monospace;
+  font-feature-settings: "tnum";
+}
+
+.syswatch-label {
+  color: #b8b8b8;
+}
+
+.syswatch-separator {
+  color: #5f5f5f;
+}
+
+.syswatch-value-3 {
+  min-width: 3.4em;
+  text-align: right;
+}
+
+.syswatch-value-4 {
+  min-width: 4.2em;
+  text-align: right;
+}
+
+.syswatch-value-5 {
+  min-width: 5.0em;
+  text-align: right;
+}
+
+.syswatch-green {
+  color: #6ee06e;
+}
+
+.syswatch-yellow {
+  color: #f2d35c;
+}
+
+.syswatch-orange {
+  color: #ff9a3c;
+}
+
+.syswatch-red {
+  color: #ff5f5f;
+}
+
+.syswatch-blue {
+  color: #5aa9ff;
+}
+
+.syswatch-dim {
+  color: #8a8a8a;
+}

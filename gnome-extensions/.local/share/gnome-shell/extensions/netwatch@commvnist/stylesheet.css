@@ -1,0 +1,47 @@
+.netwatch-panel {
+  spacing: 4px;
+  font-family: "FiraCode Nerd Font Mono", monospace;
+  font-feature-settings: "tnum";
+}
+
+.netwatch-label {
+  color: #b8b8b8;
+}
+
+.netwatch-separator {
+  color: #5f5f5f;
+}
+
+.netwatch-value-ip {
+  min-width: 8.8em;
+  text-align: right;
+}
+
+.netwatch-value-speed {
+  min-width: 5.6em;
+  text-align: right;
+}
+
+.netwatch-green {
+  color: #6ee06e;
+}
+
+.netwatch-yellow {
+  color: #f2d35c;
+}
+
+.netwatch-orange {
+  color: #ff9a3c;
+}
+
+.netwatch-red {
+  color: #ff5f5f;
+}
+
+.netwatch-blue {
+  color: #5aa9ff;
+}
+
+.netwatch-dim {
+  color: #8a8a8a;
+}
