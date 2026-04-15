@@ -45,8 +45,6 @@ stow -n -v <package>
 ## Package Docs
 
 - [gnome-extension-sources](gnome-extension-sources/README.md)
-- [gnome-extensions-sources](gnome-extensions-sources/README.md) is an alias
-  for the singular directory name above.
 - [gnome-extensions](gnome-extensions/README.md)
 - [kitty](kitty/README.md)
 - [scripts](scripts/README.md)
