@@ -1,8 +1,9 @@
 # Documentation
 
-This directory documents the dotfiles repository, its top-level package areas,
-and host-specific setup notes. The repository is designed for GNU Stow: package
-directories contain files laid out as they should appear under `$HOME`.
+This directory documents the `system` repository, its top-level package areas,
+and host-specific Arch Linux GNOME setup notes. The repository is designed for
+GNU Stow: package directories contain files laid out as they should appear under
+`$HOME`.
 
 ## Common Dependencies
 

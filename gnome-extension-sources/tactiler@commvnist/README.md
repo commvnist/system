@@ -2,7 +2,7 @@
 
 Tactiler is a fork of [Tactile](https://gitlab.com/lundal/tactile), the GNOME Shell window tiling extension by Lasse Lundal.
 
-## Dotfiles build
+## System repository build
 
 This directory is the source and build workspace. It is not stowed directly.
 

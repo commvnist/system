@@ -1,6 +1,8 @@
-# dotfiles
+# system
 
-Personal Linux dotfiles managed as GNU Stow packages.
+Personal Arch Linux GNOME system configuration, managed as GNU Stow packages.
+This repository contains the dotfiles, local GNOME Shell extensions, scripts,
+and host notes I use on my GNOME Arch install.
 
 Each top-level package directory mirrors paths relative to `$HOME`. For example,
 `kitty/.config/kitty/kitty.conf` becomes `~/.config/kitty/kitty.conf` after
@@ -33,6 +35,7 @@ Use `stow -n -v <package>` for a dry run before linking a package.
 - `gnome-extensions`: stowable GNOME Shell extension runtime files.
 - `gnome-extension-sources`: source and build tooling for generated GNOME Shell
   extensions.
+- `docs/arch`: host-level Arch Linux setup notes that are not managed by Stow.
 - `kitty`: Kitty terminal configuration.
 - `scripts`: user scripts and shell functions.
 - `starship`: Starship prompt configuration.

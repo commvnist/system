@@ -21,4 +21,4 @@ stow zsh
 This links `zsh/.zshrc` to `~/.zshrc`.
 
 The shell configuration is expected to load user functions and scripts from the
-stowed dotfiles as configured in `.zshrc`.
+stowed system packages as configured in `.zshrc`.
