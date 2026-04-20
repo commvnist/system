@@ -1,8 +1,15 @@
-# editor
+# Editor
 export EDITOR=vim
 
-# starship
-eval "$(starship init zsh)"
+# Local user tools
+if [[ -d "$HOME/.local/bin" && ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Prompt
+if command -v starship >/dev/null 2>&1 && [[ "${TERM:-}" != dumb ]]; then
+  eval "$(starship init zsh)"
+fi
 
 # word jumping
 bindkey "^[[1;5C" forward-word
@@ -11,9 +18,6 @@ bindkey "^[[1;5D" backward-word
 # For some others (tmux alters sequences)
 bindkey "^[Od" backward-word
 bindkey "^[Oc" forward-word
-
-# bat
-alias cat="bat"
 
 # ls
 alias ls='ls --color=auto --group-directories-first'
@@ -61,34 +65,53 @@ setopt HIST_IGNORE_DUPS     # don't record consecutive duplicates
 setopt HIST_IGNORE_SPACE    # don't record commands prefixed with a space
 setopt HIST_REDUCE_BLANKS   # strip superfluous blanks
 
-# copminit
+# Completion
 
-autoload -U compinit; compinit
+autoload -Uz compinit
+compinit
 
-# plugins
-_zsh_plugins=(
-  fzf-tab/fzf-tab.plugin.zsh
-  zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
-  zsh-autopair/zsh-autopair.plugin.zsh
-  zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
-  zsh-history-substring-search/zsh-history-substring-search.zsh
-)
+# Plugins
+if command -v brew >/dev/null 2>&1; then
+  _zsh_brew_prefix="$(brew --prefix)"
+  _zsh_plugins=(
+    "$_zsh_brew_prefix/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh"
+    "$_zsh_brew_prefix/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+    "$_zsh_brew_prefix/share/zsh-autopair/autopair.zsh"
+    "$_zsh_brew_prefix/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
+    "$_zsh_brew_prefix/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+  )
+else
+  _zsh_plugins=(
+    /usr/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh
+    /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
+    /usr/share/zsh/plugins/zsh-autopair/zsh-autopair.plugin.zsh
+    /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+    /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
+  )
+fi
 for _plugin in "${_zsh_plugins[@]}"; do
-  source "/usr/share/zsh/plugins/${_plugin}"
+  if [[ -r "$_plugin" ]]; then
+    source "$_plugin"
+  fi
 done
-unset _zsh_plugins _plugin
+unset _zsh_brew_prefix _zsh_plugins _plugin
 
 # Ctrl+F: accept autosuggestion
-bindkey '^F' autosuggest-accept
+if (( $+widgets[autosuggest-accept] )); then
+  bindkey '^F' autosuggest-accept
+fi
 
 # fzf
-source <(fzf --zsh)
+if command -v fzf >/dev/null 2>&1 && [[ -t 0 && -t 1 ]]; then
+  source <(fzf --zsh)
+fi
 
 # syswatch
-source ~/.scripts/syswatch.zsh
+if [[ -r "$HOME/.scripts/syswatch.zsh" ]]; then
+  source "$HOME/.scripts/syswatch.zsh"
+fi
 
 # obsidian movie entry
-source ~/.scripts/obsidian_movie_entry.zsh
-
-# uv tool path
-export PATH="/home/naek/.local/bin:$PATH"
+if [[ -r "$HOME/.scripts/obsidian_movie_entry.zsh" ]]; then
+  source "$HOME/.scripts/obsidian_movie_entry.zsh"
+fi
