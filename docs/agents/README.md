@@ -1,86 +1,94 @@
 # agentic skills
 
-A compact, single-agent workflow for coding assistants operating in this
-repository or other local codebases you point them at. The design goal is not
-maximum autonomy. It is disciplined execution with low token burn, explicit
-quality gates, and predictable artifacts.
+This directory extends the repository root `AGENTS.md`. It does not replace it.
 
-This package is intended for Codex-style CLI usage, but the operating model is
-general:
+The root `AGENTS.md` already defines the correct philosophy:
 
-- one agent, not a swarm;
-- short planning horizons;
-- bounded search before edits;
-- small diffs by default;
-- verification before completion;
-- explicit uncertainty and rollback paths.
+- correctness and safety first;
+- clarity and maintainability over cleverness;
+- explicit handling of greenfield vs brownfield contexts;
+- strong invariants, validation, and error handling;
+- observability and debuggability as first-class concerns;
+- performance only when measured and justified.
 
-## Why this shape
+This package exists to operationalize that philosophy in a low-token,
+single-agent execution model.
 
-A lot of current agent systems over-spend on repeated planning, self-critique,
-and parallel role-play. That can increase latency and token cost without a
-commensurate reliability gain on ordinary software engineering tasks. Recent
-agent evaluations and field reports broadly support a simpler pattern: give the
-model a strong execution contract, reduce branching factor, force interaction
-with tests and tooling, and require concrete evidence before declaring success.
+## Design goal
 
-This package therefore prefers a staged pipeline with hard stop conditions over
-open-ended loops.
+Avoid the common failure mode of modern agent systems: excessive planning,
+self-reflection loops, or multi-agent orchestration that increases cost without
+improving correctness.
 
-## Files
+Instead, enforce disciplined execution:
 
-- `AGENTS.md`: top-level operating contract and repository interaction rules.
-- `skills/implementation-pipeline.md`: end-to-end delivery pipeline.
-- `skills/change-planning.md`: bounded planning and search discipline.
-- `skills/testing-strategy.md`: test-first and regression-oriented testing.
-- `skills/debugging.md`: failure triage and root-cause workflow.
-- `skills/code-review.md`: pre-submit review checklist.
-- `skills/incident-fix.md`: production-oriented hotfix mode.
-- `skills/language-profiles.md`: language/tool-specific verification matrix.
-- `prompts/task-template.md`: concise task framing template.
-- `prompts/pr-template.md`: PR body template.
+- bounded search;
+- minimal plans;
+- smallest correct diffs;
+- explicit verification;
+- evidence-driven debugging.
 
-## Usage
+## Relationship to root `AGENTS.md`
 
-For a coding session, place the contents of `AGENTS.md` into the agent's repo
-instructions or point the agent at this document set if your tool supports
-workspace instructions.
+Root file defines:
 
-Then give the agent only the task-specific context. Avoid stuffing repeated
-meta-instructions into every prompt. The skills package already encodes the
-execution policy.
+- engineering philosophy and priority ordering;
+- design and correctness standards;
+- output structure;
+- greenfield vs brownfield reasoning.
 
-## Operating principles
+This package defines:
 
-The workflow has five phases.
+- execution pipeline;
+- planning constraints;
+- verification flow;
+- debugging loop.
 
-1. Understand the task and constraints.
-2. Inspect the minimum relevant code and docs.
-3. Make the smallest correct change.
-4. Verify with targeted tests, then broader checks when warranted.
-5. Summarize evidence, residual risk, and follow-ups.
+If any rule here conflicts with the root file, the root file wins.
 
-The agent should not repeatedly re-plan unless new evidence invalidates the
-current plan.
+## Operating model
+
+The pipeline is a constrained execution of the root philosophy:
+
+1. Determine context (greenfield vs brownfield).
+2. Extract constraints (interfaces, invariants, integration points).
+3. Inspect only relevant code.
+4. Form a minimal, concrete plan.
+5. Implement the simplest correct solution.
+6. Verify using tests or reproducible checks.
+7. Perform critical self-review (as defined in root `AGENTS.md`).
+
+This aligns directly with the workflow already defined in the root file, but
+adds strict limits on search, planning depth, and iteration.
+
+## Key constraints
+
+- No multi-agent decomposition.
+- No open-ended planning loops.
+- No large refactors without necessity.
+- No claims of correctness without evidence.
 
 ## Expected outputs
 
-A successful run should usually produce:
+Outputs must still follow the root format:
 
-- a concise plan;
-- a focused diff;
-- tests or updated tests when behavior changes;
-- a brief verification report;
-- a PR description with risk and rollback notes.
+- context type;
+- context summary;
+- assumptions and constraints;
+- design;
+- code;
+- tests;
+- risks and gaps.
+
+The difference is that this package ensures those outputs are produced
+consistently and efficiently.
 
 ## Limits
 
-This package intentionally does not try to solve:
+This package intentionally does not attempt:
 
-- long-horizon autonomous product management;
-- multi-agent decomposition;
-- speculative refactors without evidence;
-- exhaustive file crawling before work starts.
+- autonomous long-horizon system design;
+- speculative architectural refactors;
+- exhaustive repository analysis.
 
-Those modes are expensive and often brittle. Use them only when the task truly
-requires them.
+Those should be explicitly requested when needed, not the default mode.
