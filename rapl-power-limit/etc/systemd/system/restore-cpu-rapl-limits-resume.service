@@ -1,0 +1,12 @@
+[Unit]
+Description=Restore CPU MMIO RAPL power limits after resume
+Documentation=file:/usr/share/doc/system/rapl-power-limit.md
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+ConditionPathIsDirectory=/sys/class/powercap/intel-rapl-mmio:0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /usr/local/sbin/restore-cpu-rapl-limits
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
