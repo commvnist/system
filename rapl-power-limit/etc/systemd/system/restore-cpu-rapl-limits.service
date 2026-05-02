@@ -1,0 +1,12 @@
+[Unit]
+Description=Restore CPU MMIO RAPL power limits
+Documentation=file:/usr/share/doc/system/rapl-power-limit.md
+After=multi-user.target
+ConditionPathIsDirectory=/sys/class/powercap/intel-rapl-mmio:0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /usr/local/sbin/restore-cpu-rapl-limits
+
+[Install]
+WantedBy=multi-user.target
