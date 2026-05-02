@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PKG="/sys/class/powercap/intel-rapl-mmio:0"
+
+# This host can expose both MSR-backed and MMIO-backed RAPL package limits.
+# A stale firmware/platform state has been observed setting the MMIO long-term
+# package limit to 25 W after resume, even while the MSR package limit remains
+# high. The lower MMIO limit wins and pins CPU package power around 25 W.
+[ -d "$PKG" ] || exit 0
+
+# The P16 Gen 2 currently reports 55 W as constraint_0_max_power_uw for the
+# long-term MMIO package limit. Do not exceed the exposed long-term maximum here;
+# transient boost remains covered by the short-term and peak limits below.
+echo 55000000  > "$PKG/constraint_0_power_limit_uw"
+echo 157000000 > "$PKG/constraint_1_power_limit_uw"
+echo 234000000 > "$PKG/constraint_2_power_limit_uw"
+
+logger -t restore-cpu-rapl-limits "Restored MMIO RAPL package limits: PL1=55W PL2=157W PL4=234W"
