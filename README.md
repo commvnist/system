@@ -4,9 +4,10 @@ Personal Arch Linux GNOME system configuration, managed as GNU Stow packages.
 This repository contains the dotfiles, local GNOME Shell extensions, scripts,
 and host notes I use on my GNOME Arch install.
 
-Each top-level package directory mirrors paths relative to `$HOME`. For example,
+Most top-level package directories mirror paths relative to `$HOME`. For example,
 `kitty/.config/kitty/kitty.conf` becomes `~/.config/kitty/kitty.conf` after
-stowing the `kitty` package.
+stowing the `kitty` package. Root-target packages are explicitly documented and
+must be stowed with `--target=/`.
 
 ## Install
 
@@ -16,7 +17,7 @@ Install the common tooling:
 sudo pacman -S --needed stow zsh kitty starship tmux vim python
 ```
 
-Stow packages from the repository root:
+Stow user packages from the repository root:
 
 ```sh
 stow zsh
@@ -29,7 +30,14 @@ stow scripts
 stow gnome-extensions
 ```
 
-Use `stow -n -v <package>` for a dry run before linking a package.
+Stow root-target packages with an explicit target:
+
+```sh
+sudo stow --target=/ rapl-power-limit
+```
+
+Use `stow -n -v <package>` for a dry run before linking a user package, or
+`sudo stow -n -v --target=/ <package>` before linking a root-target package.
 
 ## Layout
 
@@ -39,6 +47,8 @@ Use `stow -n -v <package>` for a dry run before linking a package.
 - `docs/arch`: host-level Arch Linux setup notes that are not managed by Stow.
 - `kitty`: Kitty terminal configuration.
 - `mangohud`: MangoHud overlay configuration.
+- `rapl-power-limit`: root-target systemd units and script to restore CPU MMIO
+  RAPL package limits on the ThinkPad P16 Gen 2.
 - `scripts`: user scripts and shell functions.
 - `starship`: Starship prompt configuration.
 - `tmux`: tmux configuration.
