@@ -56,6 +56,15 @@ gacp() {
   git add -u && git commit -m "$msg" && git push
 }
 
+# RAPL power limit
+_rapl_restore_script=/usr/local/sbin/restore-cpu-rapl-limits
+_rapl_restore_stow_target="$HOME/system/rapl-power-limit/usr/local/sbin/restore-cpu-rapl-limits"
+if [[ -L "$_rapl_restore_script" && -f "$_rapl_restore_script" &&
+      "$(readlink -f "$_rapl_restore_script" 2>/dev/null)" == "$_rapl_restore_stow_target" ]]; then
+  alias rapl-restore='sudo bash /usr/local/sbin/restore-cpu-rapl-limits'
+fi
+unset _rapl_restore_script _rapl_restore_stow_target
+
 # History
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=10000
