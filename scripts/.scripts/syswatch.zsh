@@ -366,14 +366,56 @@ syswatch() {
     printf '%s %s %s %s %s %s' "${gov}" "${epp}" "${ts}" "${hb}" "${mn}" "${mx}"
   }
 
+  _sw_uint_file_or() {  # _sw_uint_file_or <path> <fallback>
+    local raw fallback
+    fallback=${2:-0}
+    raw=$(< "${1}" 2>/dev/null) || { printf '%d' "${fallback}"; return; }
+    raw=${raw//[[:space:]]/}
+    raw=$(_sw_int_or "${raw}" "${fallback}")
+    printf '%d' "${raw}"
+  }
+
+  _sw_power_microwatts_to_watts() {  # _sw_power_microwatts_to_watts <microwatts>
+    local raw
+    raw=$(_sw_int_or "${1:-}" 0)
+    printf '%d' "$(( (raw + 500000) / 1000000 ))"
+  }
+
+  _sw_current_voltage_to_watts() {  # _sw_current_voltage_to_watts <microamps> <microvolts>
+    local current_ua voltage_uv
+    current_ua=$(_sw_int_or "${1:-}" 0)
+    voltage_uv=$(_sw_int_or "${2:-}" 0)
+    if (( current_ua <= 0 || voltage_uv <= 0 )); then
+      printf '0'
+      return
+    fi
+    printf '%d' "$(( (current_ua * voltage_uv + 500000000000) / 1000000000000 ))"
+  }
+
   _sw_battery() {
-    local en ef pn st
-    en=$(< /sys/class/power_supply/BAT0/energy_now  2>/dev/null) || en=0
-    ef=$(< /sys/class/power_supply/BAT0/energy_full 2>/dev/null) || ef=1
-    pn=$(< /sys/class/power_supply/BAT0/power_now   2>/dev/null) || pn=0
-    st=$(< /sys/class/power_supply/BAT0/status      2>/dev/null) || st='?'
+    local bdir en ef pn current_ua voltage_uv watts st
+    bdir='/sys/class/power_supply/BAT0'
+    en=$(_sw_uint_file_or "${bdir}/energy_now" 0)
+    ef=$(_sw_uint_file_or "${bdir}/energy_full" 0)
+    if (( ef <= 0 )); then
+      en=$(_sw_uint_file_or "${bdir}/charge_now" 0)
+      ef=$(_sw_uint_file_or "${bdir}/charge_full" 0)
+    fi
+
+    # Linux power_supply reports power_now in microwatts, not milliwatts.
+    pn=$(_sw_uint_file_or "${bdir}/power_now" 0)
+    if (( pn > 0 )); then
+      watts=$(_sw_power_microwatts_to_watts "${pn}")
+    else
+      current_ua=$(_sw_uint_file_or "${bdir}/current_now" 0)
+      voltage_uv=$(_sw_uint_file_or "${bdir}/voltage_now" 0)
+      watts=$(_sw_current_voltage_to_watts "${current_ua}" "${voltage_uv}")
+    fi
+
+    st=$(< "${bdir}/status" 2>/dev/null) || st='?'
+    [[ -n "${st}" ]] || st='?'
     # Newline-separated so multi-word status (e.g. "Not charging") is preserved
-    printf '%d\n%d\n%s\n' "$(( ef > 0 ? en * 100 / ef : 0 ))" "$(( pn / 1000 ))" "${st}"
+    printf '%d\n%d\n%s\n' "$(( ef > 0 ? en * 100 / ef : 0 ))" "${watts}" "${st}"
   }
 
   _sw_nvidia() {
