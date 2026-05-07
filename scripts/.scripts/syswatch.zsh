@@ -1,5 +1,5 @@
 # ── syswatch ───────────────────────────────────────────────────────────────────
-# All-in-one performance & thermal monitor for ThinkPad P16 Gen 2 (zsh)
+# All-in-one performance & thermal monitor for Linux (zsh)
 #
 # Usage:  syswatch [interval]   (default: 0.5s, decimals ok)
 #
@@ -44,7 +44,7 @@ syswatch() {
   local R DIM DIMMER LBL ACC TTL SEC GRN YLW ORG RED BLU
 
   # Init-time
-  local cpu_model nvidia_max mem_max
+  local cpu_model gpu_model nvidia_max mem_max
   local -i interval_cs last_cs
   local -i cpu_idle_prev cpu_total_prev
   local -i rapl_e_prev rapl_t_prev rapl_pkg_w
@@ -59,7 +59,8 @@ syswatch() {
   local -i cpu_usage cpu_idle_now cpu_total_now cpu_delta cpu_idle_delta
   local gov epp turbo hwpb pmin pmax
   local prof pwrsrc
-  local bpct bwatt bst
+  local -i bpresent bpct bwatt
+  local bst
   local nvc nvm nvu nvp nvps nvvu nvvt nvt
   local ram_used ram_total
   local -i rapl_e_now rapl_t_now rapl_de rapl_dt rapl_emax sys_pwr_w
@@ -443,7 +444,7 @@ syswatch() {
     local bdir en ef pn current_ua voltage_uv watts st capacity pct
     bdir=$(_sw_system_battery_dir)
     if [[ -z "${bdir}" ]]; then
-      printf '0\n0\nunavailable\n'
+      printf '0\n0\n0\nunavailable\n'
       return
     fi
 
@@ -475,8 +476,10 @@ syswatch() {
 
     st=$(_sw_file_or "${bdir}/status" '?')
     [[ -n "${st}" ]] || st='?'
-    # Newline-separated so multi-word status (e.g. "Not charging") is preserved
-    printf '%d\n%d\n%s\n' "${pct}" "${watts}" "${st}"
+    # Newline-separated so multi-word status (e.g. "Not charging") is preserved.
+    # First field is an explicit presence flag; desktops without a system
+    # battery should omit battery-only render fields instead of showing 0%.
+    printf '1\n%d\n%d\n%s\n' "${pct}" "${watts}" "${st}"
   }
 
   _sw_nvidia() {
@@ -504,6 +507,44 @@ syswatch() {
       printf "%d %d %d %.0f %s %d %d %d", $1,$2,$3,$4,$5,$6,$7,$8
       exit
     }'
+  }
+
+  _sw_cpu_model() {
+    awk -F': ' '
+      /^model name/ {
+        name=$2
+        gsub(/\(R\)|\(TM\)/, "", name)
+        gsub(/[[:space:]]+/, " ", name)
+        sub(/^[[:space:]]+/, "", name)
+        sub(/[[:space:]]+$/, "", name)
+        if (name != "") {
+          found=1
+          print name
+          exit
+        }
+      }
+      END {
+        if (!found)
+          print "unknown CPU"
+      }
+    ' /proc/cpuinfo
+  }
+
+  _sw_nvidia_model() {
+    if (( NO_NVIDIA )) || ! command -v nvidia-smi &>/dev/null; then
+      return
+    fi
+
+    local raw
+    raw=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) || return
+    printf '%s\n' "${raw}" | awk '
+      NR == 1 {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+        if ($0 != "")
+          print
+        exit
+      }
+    '
   }
 
   _sw_cpu_max() {
@@ -653,7 +694,8 @@ syswatch() {
   }
 
   # ── init ─────────────────────────────────────────────────────────────────────
-  cpu_model=$(awk -F': ' '/^model name/{gsub(/\(R\)|\(TM\)/,"",$2); gsub(/  +/," ",$2); print $2; exit}' /proc/cpuinfo)
+  cpu_model=$(_sw_cpu_model)
+  gpu_model=$(_sw_nvidia_model)
   CPU_MAX=$(_sw_cpu_max)
   nvidia_max=$(_sw_nvidia_max)
   mem_max=$(_sw_mem_max)
@@ -722,12 +764,16 @@ syswatch() {
       ps=($(_sw_pstate_info))
       gov=${ps[1]}; epp=${ps[2]}; turbo=${ps[3]}; hwpb=${ps[4]}; pmin=${ps[5]}; pmax=${ps[6]}
 
-      prof=$(_sw_file_or /sys/firmware/acpi/platform_profile '?')
-      pwrsrc=$(_sw_ac_online)
-      [[ "${pwrsrc}" == '1' ]] && pwrsrc='AC' || pwrsrc='BAT'
-
       bi=("${(@f)$(_sw_battery)}")
-      bpct=${bi[1]}; bwatt=${bi[2]}; bst=${bi[3]}
+      bpresent=${bi[1]:-0}; bpct=${bi[2]:-0}; bwatt=${bi[3]:-0}; bst=${bi[4]:-unavailable}
+
+      prof=$(_sw_file_or /sys/firmware/acpi/platform_profile '?')
+      if (( bpresent )); then
+        pwrsrc=$(_sw_ac_online)
+        [[ "${pwrsrc}" == '1' ]] && pwrsrc='AC' || pwrsrc='BAT'
+      else
+        pwrsrc='AC'
+      fi
 
       # RAPL CPU package power (uJ counter delta / us elapsed = W)
       rapl_e_now=$(_sw_uint_file_or /sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj 0)
@@ -791,7 +837,9 @@ syswatch() {
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 40 )) && bcol="${ORG}"
       [[ "${bst}" == 'Discharging' ]] && (( bpct < 20 )) && bcol="${RED}"
       _sw_p  "  ${LBL}src${R} ${ACC}${pwrsrc}${R}"
-      _sw_p  "   ${LBL}bat${R} ${bcol}${(l:3:)bpct}% ${bst:l} ${(l:3:)bwatt}W${R}"
+      if (( bpresent )); then
+        _sw_p  "   ${LBL}bat${R} ${bcol}${(l:3:)bpct}% ${bst:l} ${(l:3:)bwatt}W${R}"
+      fi
       _sw_p  "   ${LBL}sys pwr${R} $(_sw_watt_color ${sys_pwr_w})${(l:3:)sys_pwr_w}W${R}"
       _sw_p  "   ${LBL}profile${R} ${ACC}${prof}${R}"
       _sw_pn "   ${LBL}cores${R} ${ACC}${nact}/${ncpu}${R}"
@@ -855,7 +903,11 @@ syswatch() {
 
       # ── GPU ─────────────────────────────────────────────────────────────────
       if (( SHOW_NVIDIA )); then
-        _sw_sec "GPU  (RTX 4000 Ada)"
+        if [[ -n "${gpu_model}" ]]; then
+          _sw_sec "GPU  (${gpu_model})"
+        else
+          _sw_sec "GPU"
+        fi
         if [[ "${nvps}" == 'disabled' ]]; then
           _sw_pn "  ${DIM}nvidia-smi disabled by TW_NO_NVIDIA=1${R}"
         elif [[ "${nvps}" == 'unavailable' ]]; then

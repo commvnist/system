@@ -49,9 +49,15 @@ sudo systemd-tmpfiles --create /etc/tmpfiles.d/rapl.conf
 
 Log out and back in after changing group membership.
 
+CPU and NVIDIA GPU display names are discovered at startup from `/proc/cpuinfo`
+and `nvidia-smi`, respectively. If NVIDIA probing is disabled or unavailable,
+the GPU section falls back to a generic `GPU` heading.
+
 Battery and AC state are discovered from `/sys/class/power_supply`. `syswatch`
 uses the system battery and ignores device-scoped peripheral batteries when
-multiple power supplies are present.
+multiple power supplies are present. If no system-scoped battery is present,
+the battery field is hidden so desktop systems do not show misleading `0%`
+or `unavailable` battery details.
 
 Movie note creation uses TMDB HTML and writes to
 `$OBSIDIAN_MOVIES_DIR`, defaulting to `~/Documents/naek/movies`.
