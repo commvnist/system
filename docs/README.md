@@ -12,7 +12,7 @@ systemd packages should be installed as real files on `/`, not as symlinks into
 Install the base tools used across the repository:
 
 ```sh
-sudo pacman -S --needed stow zsh kitty starship tmux vim python
+sudo pacman -S --needed stow zsh kitty ghostty starship tmux vim python
 ```
 
 GNOME extension build work additionally needs:
@@ -57,6 +57,7 @@ stow -n -v <package>
 ## Documentation Areas
 
 - [arch](arch/README.md)
+- [ghostty](ghostty/README.md)
 - [gnome-extension-sources](gnome-extension-sources/README.md)
 - [gnome-extensions](gnome-extensions/README.md)
 - [kitty](kitty/README.md)

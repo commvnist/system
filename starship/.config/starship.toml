@@ -1,5 +1,21 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
+add_newline = false
+command_timeout = 1000
+format = """
+$directory\
+$git_branch\
+$git_commit\
+$git_state\
+$git_status\
+$all\
+$cmd_duration\
+$status\
+$jobs\
+$line_break\
+$character"""
+scan_timeout = 50
+
 [aws]
 symbol = " "
 
@@ -12,8 +28,21 @@ symbol = " "
 [c]
 symbol = " "
 
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold yellow)"
+vimcmd_replace_one_symbol = "[❮](bold purple)"
+vimcmd_replace_symbol = "[❮](bold purple)"
+vimcmd_visual_symbol = "[❮](bold cyan)"
+
 [cpp]
 symbol = " "
+
+[cmd_duration]
+format = "took [$duration]($style) "
+min_time = 1000
+style = "bold yellow"
 
 [cmake]
 symbol = " "
@@ -31,7 +60,11 @@ symbol = " "
 symbol = " "
 
 [directory]
+format = "[$path]($style)[$read_only]($read_only_style) "
 read_only = " 󰌾"
+read_only_style = "bold red"
+style = "bold cyan"
+truncation_length = 4
 
 [docker_context]
 symbol = " "
@@ -55,10 +88,25 @@ symbol = " "
 symbol = " "
 
 [git_branch]
+format = "on [$symbol$branch(:$remote_branch)]($style) "
 symbol = " "
 
 [git_commit]
 tag_symbol = '  '
+
+[git_status]
+ahead = "⇡${count} "
+behind = "⇣${count} "
+conflicted = "=${count} "
+deleted = "✘${count} "
+diverged = "⇕⇡${ahead_count}⇣${behind_count} "
+format = '([$all_status$ahead_behind]($style) )'
+modified = "!${count} "
+renamed = "»${count} "
+staged = "+${count} "
+stashed = "≡${count} "
+style = "bold red"
+untracked = "?${count} "
 
 [golang]
 symbol = " "
@@ -83,6 +131,12 @@ ssh_symbol = " "
 
 [java]
 symbol = " "
+
+[jobs]
+format = "[$symbol$number]($style) "
+number_threshold = 1
+style = "bold blue"
+symbol = " "
 
 [julia]
 symbol = " "
@@ -193,6 +247,9 @@ symbol = "󱘗 "
 symbol = " "
 
 [status]
+disabled = false
+format = "[$symbol$status]($style) "
+style = "bold red"
 symbol = " "
 
 [swift]

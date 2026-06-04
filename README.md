@@ -15,7 +15,7 @@ than left as symlinks into this repository.
 Install the common tooling:
 
 ```sh
-sudo pacman -S --needed stow zsh kitty starship tmux vim python
+sudo pacman -S --needed stow zsh kitty ghostty starship tmux vim python
 ```
 
 Stow user packages from the repository root:
@@ -23,6 +23,7 @@ Stow user packages from the repository root:
 ```sh
 stow zsh
 stow kitty
+stow ghostty
 stow mangohud
 stow starship
 stow tmux
@@ -47,6 +48,7 @@ the package-specific install documentation before changing machine-level files.
 - `gnome-extension-sources`: source and build tooling for generated GNOME Shell
   extensions.
 - `docs/arch`: host-level Arch Linux setup notes that are not managed by Stow.
+- `ghostty`: Ghostty terminal configuration.
 - `kitty`: Kitty terminal configuration.
 - `mangohud`: MangoHud overlay configuration.
 - `rapl-power-limit`: root-target systemd units and script to restore and
