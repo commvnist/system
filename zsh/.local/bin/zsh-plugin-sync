@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+plugin_dir="${ZSH_PLUGIN_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zsh/plugins}"
+
+require_command() {
+  local command_name="$1"
+
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'error: required command not found: %s\n' "$command_name" >&2
+    return 1
+  fi
+}
+
+sync_plugin() {
+  local name="$1"
+  local url="$2"
+  local destination="$plugin_dir/$name"
+
+  if [[ -d "$destination/.git" ]]; then
+    printf 'Updating %s\n' "$name"
+    git -C "$destination" pull --ff-only --prune
+  elif [[ -e "$destination" ]]; then
+    printf 'error: %s exists but is not a git checkout\n' "$destination" >&2
+    return 1
+  else
+    printf 'Cloning %s\n' "$name"
+    git clone --depth 1 "$url" "$destination"
+  fi
+}
+
+require_command git
+mkdir -p "$plugin_dir"
+
+sync_plugin fzf-tab https://github.com/Aloxaf/fzf-tab.git
+sync_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
+sync_plugin zsh-autopair https://github.com/hlissner/zsh-autopair.git
+sync_plugin zsh-history-substring-search https://github.com/zsh-users/zsh-history-substring-search.git
+sync_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
+
+printf 'Zsh plugins are ready in %s\n' "$plugin_dir"

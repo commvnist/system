@@ -6,6 +6,12 @@ if [[ -d "$HOME/.local/bin" && ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
+# Zsh state
+_zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+_zsh_data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/zsh"
+_zsh_plugin_dir="${ZSH_PLUGIN_DIR:-$_zsh_data_dir/plugins}"
+mkdir -p "$_zsh_cache_dir" 2>/dev/null || _zsh_cache_dir="$HOME"
+
 # Prompt
 if command -v starship >/dev/null 2>&1 && [[ "${TERM:-}" != dumb ]]; then
   eval "$(starship init zsh)"
@@ -50,55 +56,89 @@ gacp() {
 
 # RAPL power limit
 _rapl_restore_script=/usr/local/sbin/restore-cpu-rapl-limits
-_rapl_restore_stow_target="$HOME/system/rapl-power-limit/usr/local/sbin/restore-cpu-rapl-limits"
-if [[ -L "$_rapl_restore_script" && -f "$_rapl_restore_script" &&
-      "$(readlink -f "$_rapl_restore_script" 2>/dev/null)" == "$_rapl_restore_stow_target" ]]; then
-  alias rapl-restore='sudo bash /usr/local/sbin/restore-cpu-rapl-limits'
+if [[ -L "$_rapl_restore_script" && -f "$_rapl_restore_script" ]]; then
+  _rapl_restore_target="$(readlink -f "$_rapl_restore_script" 2>/dev/null)"
+  if [[ "$_rapl_restore_target" == */rapl-power-limit/usr/local/sbin/restore-cpu-rapl-limits ]]; then
+    alias rapl-restore='sudo bash /usr/local/sbin/restore-cpu-rapl-limits'
+  fi
 fi
-unset _rapl_restore_script _rapl_restore_stow_target
+unset _rapl_restore_script _rapl_restore_target
 
 # History
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=10000
 export SAVEHIST=10000
+setopt EXTENDED_HISTORY     # keep timestamps and durations
 setopt INC_APPEND_HISTORY   # write to HISTFILE immediately, not on shell exit
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_FIND_NO_DUPS
 setopt HIST_IGNORE_DUPS     # don't record consecutive duplicates
 setopt HIST_IGNORE_SPACE    # don't record commands prefixed with a space
 setopt HIST_REDUCE_BLANKS   # strip superfluous blanks
+setopt HIST_SAVE_NO_DUPS
 
 # Completion
 
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+zstyle ':completion:*' menu select
+zmodload zsh/complist 2>/dev/null || true
 autoload -Uz compinit
-compinit
+compinit -d "$_zsh_cache_dir/zcompdump-${ZSH_VERSION}"
 
-# Plugins. Syntax highlighting is loaded last so it can wrap custom ZLE widgets.
+# Plugins. User-managed clones are preferred, followed by Homebrew and distro packages.
+_zsh_brew_prefix=
 if command -v brew >/dev/null 2>&1; then
-  _zsh_brew_prefix="$(brew --prefix)"
-  _zsh_plugins=(
-    "$_zsh_brew_prefix/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh"
-    "$_zsh_brew_prefix/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
-    "$_zsh_brew_prefix/share/zsh-autopair/autopair.zsh"
-    "$_zsh_brew_prefix/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
-  )
-  _zsh_syntax_highlighting="$_zsh_brew_prefix/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-else
-  _zsh_plugins=(
-    /usr/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh
-    /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
-    /usr/share/zsh/plugins/zsh-autopair/zsh-autopair.plugin.zsh
-    /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
-  )
-  _zsh_syntax_highlighting=/usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
+  _zsh_brew_prefix="$(brew --prefix 2>/dev/null)"
 fi
-for _plugin in "${_zsh_plugins[@]}"; do
-  if [[ -r "$_plugin" ]]; then
-    source "$_plugin"
+
+_zsh_source_first() {
+  local name="$1"
+  local plugin
+  shift
+
+  for plugin in "$@"; do
+    [[ -n "$plugin" && -r "$plugin" ]] || continue
+    source "$plugin"
+    return 0
+  done
+
+  if [[ -n "${ZSH_PLUGIN_DEBUG:-}" ]]; then
+    print -u2 "zsh: plugin not found: $name"
   fi
-done
+  return 1
+}
+
+_zsh_source_first fzf-tab \
+  "$_zsh_plugin_dir/fzf-tab/fzf-tab.plugin.zsh" \
+  "$_zsh_plugin_dir/fzf-tab/fzf-tab.zsh" \
+  "${_zsh_brew_prefix:+$_zsh_brew_prefix/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh}" \
+  /usr/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh \
+  /usr/share/zsh/plugins/fzf-tab/fzf-tab.zsh
+
+_zsh_source_first zsh-autosuggestions \
+  "$_zsh_plugin_dir/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+  "$_zsh_plugin_dir/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh" \
+  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-autosuggestions/zsh-autosuggestions.zsh}" \
+  /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh \
+  /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+_zsh_source_first zsh-autopair \
+  "$_zsh_plugin_dir/zsh-autopair/autopair.zsh" \
+  "$_zsh_plugin_dir/zsh-autopair/zsh-autopair.plugin.zsh" \
+  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-autopair/autopair.zsh}" \
+  /usr/share/zsh/plugins/zsh-autopair/autopair.zsh \
+  /usr/share/zsh/plugins/zsh-autopair/zsh-autopair.plugin.zsh
+
+_zsh_source_first zsh-history-substring-search \
+  "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.zsh" \
+  "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.plugin.zsh" \
+  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-history-substring-search/zsh-history-substring-search.zsh}" \
+  /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh \
+  /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.plugin.zsh
 
 # fzf
 if command -v fzf >/dev/null 2>&1 && [[ -t 0 && -t 1 ]]; then
-  source <(fzf --zsh)
+  source <(fzf --zsh 2>/dev/null)
 fi
 
 # Vim mode
@@ -192,7 +232,13 @@ if [[ -r "$HOME/.scripts/obsidian_movie_entry.zsh" ]]; then
   source "$HOME/.scripts/obsidian_movie_entry.zsh"
 fi
 
-if [[ -r "$_zsh_syntax_highlighting" ]]; then
-  source "$_zsh_syntax_highlighting"
-fi
-unset _zsh_brew_prefix _zsh_plugins _plugin _zsh_syntax_highlighting
+# Syntax highlighting is loaded last so it can wrap custom ZLE widgets.
+_zsh_source_first zsh-syntax-highlighting \
+  "$_zsh_plugin_dir/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
+  "$_zsh_plugin_dir/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh" \
+  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh}" \
+  /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh \
+  /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+unset -f _zsh_source_first
+unset _zsh_brew_prefix _zsh_cache_dir _zsh_data_dir _zsh_plugin_dir

@@ -15,21 +15,21 @@ than left as symlinks into this repository.
 Install the common tooling:
 
 ```sh
-sudo pacman -S --needed stow zsh kitty ghostty starship tmux vim python
+sudo pacman -S --needed git stow zsh zsh-completions fzf kitty ghostty starship tmux vim python
 ```
 
 Stow user packages from the repository root:
 
 ```sh
-stow zsh
-stow kitty
-stow ghostty
-stow mangohud
-stow starship
-stow tmux
-stow vim
-stow scripts
-stow gnome-extensions
+stow --target="$HOME" --no-folding zsh
+stow --target="$HOME" --no-folding kitty
+stow --target="$HOME" --no-folding ghostty
+stow --target="$HOME" --no-folding mangohud
+stow --target="$HOME" --no-folding starship
+stow --target="$HOME" --no-folding tmux
+stow --target="$HOME" --no-folding vim
+stow --target="$HOME" --no-folding scripts
+stow --target="$HOME" --no-folding gnome-extensions
 ```
 
 Install the RAPL power limit package using its documented copy-based procedure:
