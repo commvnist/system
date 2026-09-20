@@ -28,9 +28,9 @@ jobs:
           activation=$(nix --extra-experimental-features 'nix-command flakes' build --no-update-lock-file --no-link --print-out-paths "path:$PWD#checks.$system.activation")
           for managed in \
             .zshrc .tmux.conf .config/nvim/init.lua .config/starship.toml \
+            .config/atuin/config.toml .config/direnv/lib/hm-nix-direnv.sh \
             .local/share/zsh/plugins/fzf-tab \
             .local/share/zsh/plugins/zsh-completions \
-            .local/share/zsh/plugins/zsh-history-substring-search \
             .local/share/zsh/plugins/zsh-syntax-highlighting \
             .local/share/nvim/site/pack/hm; do
             if [[ ! -L "$activation/home-files/$managed" ]]; then
@@ -38,30 +38,54 @@ jobs:
               exit 1
             fi
           done
+          test_home=$(mktemp -d)
+          mkdir -p "$test_home/.local/share/zsh" "$test_home/.config/atuin"
+          ln -s "$activation/home-files/.zshrc" "$test_home/.zshrc"
+          ln -s "$activation/home-files/.local/share/zsh/plugins" "$test_home/.local/share/zsh/plugins"
+          ln -s "$activation/home-files/.config/atuin/config.toml" "$test_home/.config/atuin/config.toml"
+          HOME="$test_home" PATH="$activation/home-path/bin:$PATH" TERM=dumb zsh -ic '
+            bindkey -M vicmd k | grep -q up-line-or-history &&
+            bindkey -M vicmd / | grep -q vi-history-search-backward &&
+            bindkey -M vicmd "?" | grep -q vi-history-search-forward &&
+            bindkey -M viins "^R" | grep -q atuin-search-viins &&
+            bindkey -M vicmd "^R" | grep -q atuin-search-vicmd &&
+            bindkey -M viins "^[[A" | grep -q atuin-up-search-viins &&
+            bindkey -M vicmd "^[[A" | grep -q atuin-up-search-vicmd
+          '
           printf '%s\n' "$activation/home-path/bin" >> "$GITHUB_PATH"
           printf 'NVIM_TEST_DATA_HOME=%s\n' "$activation/home-files/.local/share" >> "$GITHUB_ENV"
+          printf 'DIRENV_CONFIG=%s\n' "$activation/home-files/.config/direnv" >> "$GITHUB_ENV"
       - name: Check scripts and bindings
         shell: bash
         run: |
           bash -n bootstrap/*.sh tests/*.sh
           zsh -n zsh/.zshrc
-          bash tests/test_install_nix.sh
-          bash tests/test_home.sh
-          python3 -m unittest discover -s tests -p test_config.py
           nvim --version | sed -n '1p' | grep -q '^NVIM'
           vim --version | sed -n '1p' | grep -q '^NVIM'
+          atuin --version
+          mise --version
+          mise trust mise.toml
+          mise tasks ls
+          direnv version
+          mise run lint
+          mise run test
           TERM=xterm-256color STARSHIP_CONFIG="$PWD/starship/.config/starship.toml" starship prompt >/dev/null
           tmux -L system-ci -f "$PWD/tmux/.tmux.conf" new-session -d -s smoke
           tmux -L system-ci kill-server
+      - name: Check nix-direnv project shell
+        shell: bash
+        run: |
+          test_dir=$(mktemp -d)
+          nixpkgs_source=$(nix --extra-experimental-features 'nix-command flakes' eval --raw --impure --expr 'let f = builtins.getFlake (toString ./.) ; in f.inputs.nixpkgs.outPath')
+          cat > "$test_dir/shell.nix" <<EOF
+          { pkgs ? import $nixpkgs_source {} }:
+          pkgs.mkShell { shellHook = "export SYSTEM_DIRENV_CHECK=ready"; }
+          EOF
+          printf 'type nix_direnv_version >/dev/null || exit 1\nuse nix\n' > "$test_dir/.envrc"
+          direnv allow "$test_dir"
+          # shellcheck disable=SC2016
+          direnv exec "$test_dir" bash -c 'test "$SYSTEM_DIRENV_CHECK" = ready'
       - name: Evaluate every supported system
         if: matrix.runner == 'ubuntu-24.04'
         shell: bash
         run: nix --extra-experimental-features 'nix-command flakes' flake check --no-update-lock-file --all-systems --no-build "path:$PWD"
-      - name: Lint scripts and workflow
-        if: matrix.runner == 'ubuntu-24.04'
-        shell: bash
-        run: |
-          actionlint_path=$(nix --extra-experimental-features 'nix-command flakes' build --impure --no-link --print-out-paths --expr "let f = builtins.getFlake \"path:$PWD\"; in f.inputs.nixpkgs.legacyPackages.x86_64-linux.actionlint")
-          shellcheck_path=$(nix --extra-experimental-features 'nix-command flakes' build --impure --no-link --print-out-paths --expr "let f = builtins.getFlake \"path:$PWD\"; in f.inputs.nixpkgs.legacyPackages.x86_64-linux.shellcheck.bin")
-          "$shellcheck_path/bin/shellcheck" bootstrap/*.sh tests/*.sh
-          PATH="$shellcheck_path/bin:$PATH" "$actionlint_path/bin/actionlint" .github/workflows/check.yml

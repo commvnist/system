@@ -10,15 +10,52 @@
   programs.home-manager.enable = true;
 
   home.packages = with pkgs; [
+    actionlint
+    bat
+    bottom
+    delta
+    difftastic
+    dust
+    eza
     fd
     fzf
+    gh
     git
+    gum
+    hyperfine
+    jq
+    lazygit
     ripgrep
+    shellcheck
+    shfmt
     starship
+    tealdeer
     tmux
+    watchexec
+    yq-go
     zsh
     zoxide
   ];
+
+  programs.atuin = {
+    enable = true;
+    enableZshIntegration = false; # Keep the Vim keymap in the linked .zshrc.
+    settings = {
+      auto_sync = false;
+      update_check = false;
+    };
+  };
+
+  programs.direnv = {
+    enable = true;
+    enableZshIntegration = false; # The linked .zshrc loads this after the prompt.
+    nix-direnv.enable = true;
+  };
+
+  programs.mise = {
+    enable = true;
+    enableZshIntegration = false; # mise run works without shell activation.
+  };
 
   programs.neovim = {
     enable = true;
@@ -60,7 +97,6 @@
 
     ".local/share/zsh/plugins/fzf-tab".source = inputs."fzf-tab";
     ".local/share/zsh/plugins/zsh-completions".source = inputs."zsh-completions";
-    ".local/share/zsh/plugins/zsh-history-substring-search".source = inputs."zsh-history-substring-search";
     ".local/share/zsh/plugins/zsh-syntax-highlighting".source = inputs."zsh-syntax-highlighting";
   };
 

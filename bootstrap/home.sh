@@ -109,11 +109,11 @@ doctor() {
   done
   ((missing == 0)) || fail "$missing broken home link(s); repair or move them before switching"
   plugin_dir=$HOME/.local/share/zsh/plugins
-  for plugin in fzf-tab zsh-completions zsh-history-substring-search zsh-syntax-highlighting; do
+  for plugin in fzf-tab zsh-completions zsh-syntax-highlighting; do
     [[ -d "$plugin_dir/$plugin" ]] && present=$((present + 1))
   done
-  printf 'Pinned Zsh plugins: %s/4 present in %s\n' "$present" "$plugin_dir"
-  if ((present < 4)); then printf 'Switch will provide the pinned plugins.\n'; fi
+  printf 'Pinned Zsh plugins: %s/3 present in %s\n' "$present" "$plugin_dir"
+  if ((present < 3)); then printf 'Switch will provide the pinned plugins.\n'; fi
   printf 'Next: bash bootstrap/home.sh check\n'
 }
 

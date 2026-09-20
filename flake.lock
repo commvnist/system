@@ -59,7 +59,6 @@
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "zsh-completions": "zsh-completions",
-        "zsh-history-substring-search": "zsh-history-substring-search",
         "zsh-syntax-highlighting": "zsh-syntax-highlighting"
       }
     },
@@ -76,22 +75,6 @@
       "original": {
         "owner": "zsh-users",
         "repo": "zsh-completions",
-        "type": "github"
-      }
-    },
-    "zsh-history-substring-search": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1789715484,
-        "narHash": "sha256-zJYTmlZy/b40dX1ZIeEo0/Vianm0Call04uwJDD1rYw=",
-        "owner": "zsh-users",
-        "repo": "zsh-history-substring-search",
-        "rev": "a0bdb0d47dbaba31dba2db7af8c48a5d9c74049a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "zsh-users",
-        "repo": "zsh-history-substring-search",
         "type": "github"
       }
     },

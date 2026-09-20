@@ -1,0 +1,34 @@
+[tasks.doctor]
+description = "Inspect this host before activation"
+run = "bash bootstrap/home.sh doctor"
+
+[tasks.check]
+description = "Build and preview Home Manager changes"
+run = "bash bootstrap/home.sh check"
+
+[tasks.switch]
+description = "Activate the pinned Home Manager configuration"
+run = "bash bootstrap/home.sh switch"
+
+[tasks.status]
+description = "List Home Manager generations"
+run = "bash bootstrap/home.sh status"
+
+[tasks.rollback]
+description = "Activate the previous Home Manager generation"
+run = "bash bootstrap/home.sh rollback"
+
+[tasks.test]
+description = "Run shell and Neovim checks after activation"
+run = [
+  "bash tests/test_install_nix.sh",
+  "bash tests/test_home.sh",
+  "python3 -m unittest discover -s tests -p test_config.py",
+]
+
+[tasks.lint]
+description = "Lint shell scripts and the GitHub Actions workflow"
+run = [
+  "shellcheck bootstrap/*.sh tests/*.sh",
+  "actionlint .github/workflows/check.yml",
+]

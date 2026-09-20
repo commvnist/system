@@ -111,10 +111,6 @@ _zsh_source_first fzf-tab \
   "$_zsh_plugin_dir/fzf-tab/fzf-tab.plugin.zsh" \
   "$_zsh_plugin_dir/fzf-tab/fzf-tab.zsh"
 
-_zsh_source_first zsh-history-substring-search \
-  "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.zsh" \
-  "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.plugin.zsh"
-
 # fzf
 if command -v fzf >/dev/null 2>&1 && [[ -t 0 && -t 1 ]]; then
   source <(fzf --zsh 2>/dev/null)
@@ -178,7 +174,7 @@ zle-line-finish() {
 zle -N zle-line-finish
 
 # Shell editing: Esc enters normal mode, v opens the command in Neovim, and
-# Ctrl-r/Ctrl-t/Alt-c use fzf when available. Arrow history search is optional.
+# Ctrl-r and Up search Atuin history; Ctrl-t/Alt-c use fzf when available.
 for _keymap in viins vicmd; do
   bindkey -M "$_keymap" "^[[1;5C" forward-word
   bindkey -M "$_keymap" "^[[1;5D" backward-word
@@ -196,20 +192,32 @@ bindkey -M viins "^W" backward-kill-word
 bindkey -M viins "^?" backward-delete-char
 bindkey -M vicmd "v" edit-command-line
 
-_zsh_bind_widget_all_keymaps "^[[A" history-substring-search-up
-_zsh_bind_widget_all_keymaps "^[[B" history-substring-search-down
-_zsh_bind_widget_all_keymaps "^P" history-substring-search-up
-_zsh_bind_widget_all_keymaps "^N" history-substring-search-down
-_zsh_bind_widget_all_keymaps "^R" fzf-history-widget
 _zsh_bind_widget_all_keymaps "^T" fzf-file-widget
 _zsh_bind_widget_all_keymaps "^[c" fzf-cd-widget
+
+if command -v atuin >/dev/null 2>&1 && [[ -o interactive && -o zle ]]; then
+  # Atuin's default Vim bindings replace k and /; bind only history search.
+  eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r --disable-ai)"
+  _zsh_bind_widget viins "^R" atuin-search-viins
+  _zsh_bind_widget vicmd "^R" atuin-search-vicmd
+  for _up_key in "^[[A" "^[OA"; do
+    _zsh_bind_widget viins "$_up_key" atuin-up-search-viins
+    _zsh_bind_widget vicmd "$_up_key" atuin-up-search-vicmd
+  done
+  unset _up_key
+fi
 unset -f _zsh_bind_widget _zsh_bind_widget_all_keymaps
 unset _keymap
 
-# Syntax highlighting is loaded last so it can wrap custom ZLE widgets.
+# Syntax highlighting loads after the other ZLE widgets so it can wrap them.
 _zsh_source_first zsh-syntax-highlighting \
   "$_zsh_plugin_dir/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
   "$_zsh_plugin_dir/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh"
+
+# direnv needs its prompt hook after the other prompt setup.
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook zsh)"
+fi
 
 unset -f _zsh_source_first
 unset _zsh_cache_dir _zsh_plugin_dir

@@ -11,6 +11,7 @@ The [keyboard shortcut guide](keybindings.md) covers Neovim, tmux, and Zsh.
 - [starship](starship/README.md)
 - [tmux](tmux/README.md)
 - [Neovim](neovim/README.md)
+- [CLI tools and project tasks](tools/README.md)
 
 ## Bootstrap
 

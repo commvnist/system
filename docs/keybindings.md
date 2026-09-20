@@ -31,8 +31,9 @@ the next key. Native Neovim keys such as `Ctrl-w h/j/k/l` remain available.
 | tmux | Prefix `R` | Reload the tmux configuration. |
 | Zsh insert mode | `Esc` | Enter Vim command mode; `i` returns to insert mode. |
 | Zsh command mode | `v` | Edit the command line in `$EDITOR`. |
-| Zsh | `Ctrl-r`, `Ctrl-t`, `Alt-c` | fzf history, file, and directory search when fzf is installed. |
-| Zsh | Up/Down | Search history for the text already typed, when the plugin is installed. |
+| Zsh | `Ctrl-r`, Up Arrow | Search local command history with Atuin. |
+| Zsh | `Ctrl-t`, `Alt-c` | Find a file or directory with fzf. |
+| Zsh | `Ctrl-p` / `Ctrl-n` | Previous / next Zsh history entry. |
 
 Press `Space` and wait briefly for a hint menu showing the next keys. The
 editor still uses standard Vim motions, operators, and text objects. Completion

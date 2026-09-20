@@ -7,7 +7,8 @@ Home Manager also installs every dotfile; the files in this repository are
 their sources, and `flake.lock` pins the tool and plugin versions.
 
 The [keyboard shortcut guide](docs/keybindings.md) explains Neovim, tmux, and
-Zsh navigation in one place.
+Zsh navigation in one place. The [CLI tools guide](docs/tools/README.md)
+covers project tasks, the shell utilities, and local command history.
 
 ## Managed configuration
 
@@ -15,6 +16,7 @@ Zsh navigation in one place.
 - `starship`: prompt configuration.
 - `tmux`: terminal multiplexer configuration.
 - `nvim`: Neovim configuration; `vi` and `vim` invoke Neovim.
+- `mise.toml`: project commands (`mise tasks ls` lists them).
 
 ## Fresh-host setup
 
@@ -31,6 +33,11 @@ bash bootstrap/home.sh doctor
 bash bootstrap/home.sh check
 bash bootstrap/home.sh switch
 ```
+
+Once Home Manager is active, review `mise.toml` and run `mise trust mise.toml`
+once per checkout. Then use `mise run doctor`, `mise run check`, and
+`mise run switch` as shorter project commands. `mise run test` and
+`mise run lint` cover the repo checks.
 
 `doctor` reports the selected user, home, platform, Nix version, and broken
 links without downloading anything. `check` builds the pinned configuration
