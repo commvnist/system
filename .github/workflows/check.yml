@@ -77,16 +77,17 @@ jobs:
       - name: Check nix-direnv project shell
         shell: bash
         run: |
-          test_dir=$(mktemp -d)
+          test_dir=$(mktemp -d "$RUNNER_TEMP/system-direnv-project.XXXXXX")
           nixpkgs_source=$(nix --extra-experimental-features 'nix-command flakes' eval --raw --impure --expr 'let f = builtins.getFlake (toString ./.) ; in f.inputs.nixpkgs.outPath')
           cat > "$test_dir/shell.nix" <<EOF
           { pkgs ? import $nixpkgs_source {} }:
           pkgs.mkShell { shellHook = "export SYSTEM_DIRENV_CHECK=ready"; }
           EOF
           printf 'type nix_direnv_version >/dev/null || exit 1\nuse nix\n' > "$test_dir/.envrc"
-          direnv allow "$test_dir"
+          cd "$test_dir"
+          direnv allow .
           # shellcheck disable=SC2016
-          direnv exec "$test_dir" bash -c 'test "$SYSTEM_DIRENV_CHECK" = ready'
+          direnv exec . bash -c 'test "$SYSTEM_DIRENV_CHECK" = ready'
       - name: Evaluate every supported system
         if: matrix.runner == 'ubuntu-24.04'
         shell: bash
