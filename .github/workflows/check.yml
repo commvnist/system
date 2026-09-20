@@ -54,7 +54,9 @@ jobs:
           '
           printf '%s\n' "$activation/home-path/bin" >> "$GITHUB_PATH"
           printf 'NVIM_TEST_DATA_HOME=%s\n' "$activation/home-files/.local/share" >> "$GITHUB_ENV"
-          printf 'DIRENV_CONFIG=%s\n' "$activation/home-files/.config/direnv" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/system-direnv/lib"
+          ln -s "$activation/home-files/.config/direnv/lib/hm-nix-direnv.sh" "$RUNNER_TEMP/system-direnv/lib/hm-nix-direnv.sh"
+          printf 'DIRENV_CONFIG=%s\n' "$RUNNER_TEMP/system-direnv" >> "$GITHUB_ENV"
       - name: Check scripts and bindings
         shell: bash
         run: |
