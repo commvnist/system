@@ -19,6 +19,10 @@ upstreams no longer met this repository's active-maintenance rule.
 
 To see individual missing plugin names during shell startup, set
 `ZSH_PLUGIN_DEBUG=1` temporarily.
-To make zsh your login shell where supported, run `chsh -s "$(command -v zsh)"`.
+To make Zsh your login shell, choose a stable OS-installed path listed in
+`/etc/shells` (typically `/bin/zsh` or `/usr/bin/zsh` on Linux), then run
+`chsh -s /that/path`. Do not use `$(command -v zsh)` here: after activation it
+may point into a Nix profile that changes with Home Manager generations.
+macOS already uses Zsh as its default shell.
 The shell uses Vim editing mode. See the [shortcut guide](../keybindings.md)
 for its bindings.

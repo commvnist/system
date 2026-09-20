@@ -10,9 +10,9 @@ new Zsh session to load the Atuin and direnv hooks.
 | Read and transform | `bat`, `jq`, `yq`, `tldr` (tealdeer) |
 | Git and GitHub | `git`, `delta`, `difft`, `gh`, `lazygit` |
 | Inspect and measure | `dust`, `btm` (bottom), `hyperfine`, `watchexec` |
-| Shell interaction | `atuin`, `gum`, `starship`, `tmux` |
+| Shell interaction | `atuin`, `gum`, `starship`, `tmux`, `sesh` |
 | Projects and environments | `mise`, `direnv`, `nix-direnv` |
-| Repo checks | `shellcheck`, `shfmt`, `actionlint` |
+| Repo checks | `shellcheck`, `shfmt`, `actionlint`, `python3` |
 
 ## Project commands
 
@@ -23,6 +23,14 @@ Use `mise run test` and `mise run lint` after activation. Mise runs tasks
 without a Zsh hook; project tool versions can be added to individual
 `mise.toml` files when needed. `mise exec -- command` runs a project command
 with its selected tools without changing the interactive shell.
+
+## Terminal sessions
+
+Use `sesh connect .` from a project directory to create or attach to its tmux
+session. Inside tmux, press `Ctrl-a p` to find another session or a directory
+you have visited with zoxide. Each session can contain several windows and
+panes; sesh does not require Git worktrees. See the
+[tmux guide](../tmux/README.md) for the session keys.
 
 ## Environment loading
 

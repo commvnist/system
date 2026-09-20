@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Copy tmux selections to the local host. OSC 52 remains tmux's fallback.
+set -euo pipefail
+
+if [[ $# != 0 ]]; then
+  printf 'Usage: clipboard-copy < text\n' >&2
+  exit 2
+fi
+
+is_wsl() {
+  [[ -n "${WSL_DISTRO_NAME:-}" || -n "${WSL_INTEROP:-}" ]] && return 0
+  [[ -r /proc/sys/kernel/osrelease ]] || return 1
+  case $(cat /proc/sys/kernel/osrelease) in
+    *[Mm]icrosoft*) return 0 ;;
+  esac
+  return 1
+}
+
+if is_wsl && command -v clip.exe >/dev/null 2>&1; then
+  exec clip.exe
+elif [[ $(uname -s) == Darwin ]] && command -v pbcopy >/dev/null 2>&1; then
+  exec pbcopy
+elif [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
+  exec wl-copy --type text/plain
+elif [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+  exec xclip -i -selection clipboard
+fi
+
+# A headless or remote terminal may still receive tmux's OSC 52 copy.
+cat >/dev/null

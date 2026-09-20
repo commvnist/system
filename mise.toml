@@ -19,16 +19,17 @@ description = "Activate the previous Home Manager generation"
 run = "bash bootstrap/home.sh rollback"
 
 [tasks.test]
-description = "Run shell and Neovim checks after activation"
+description = "Run shell, clipboard, and Neovim checks after activation"
 run = [
   "bash tests/test_install_nix.sh",
   "bash tests/test_home.sh",
+  "bash tests/test_clipboard.sh",
   "python3 -m unittest discover -s tests -p test_config.py",
 ]
 
 [tasks.lint]
 description = "Lint shell scripts and the GitHub Actions workflow"
 run = [
-  "shellcheck bootstrap/*.sh tests/*.sh",
+  "shellcheck bootstrap/*.sh tests/*.sh clipboard/clipboard-copy",
   "actionlint .github/workflows/check.yml",
 ]

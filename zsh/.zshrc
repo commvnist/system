@@ -18,11 +18,6 @@ _zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 _zsh_plugin_dir="$HOME/.local/share/zsh/plugins"
 mkdir -p "$_zsh_cache_dir" 2>/dev/null || _zsh_cache_dir="$HOME"
 
-# Prompt
-if command -v starship >/dev/null 2>&1 && [[ "${TERM:-}" != dumb ]]; then
-  eval "$(starship init zsh)"
-fi
-
 # ls: use supported color options on GNU and BSD implementations.
 if command ls --color=auto --group-directories-first /dev/null >/dev/null 2>&1; then
   alias ls='ls --color=auto --group-directories-first'
@@ -208,6 +203,12 @@ if command -v atuin >/dev/null 2>&1 && [[ -o interactive && -o zle ]]; then
 fi
 unset -f _zsh_bind_widget _zsh_bind_widget_all_keymaps
 unset _keymap
+
+# Starship wraps the cursor widget and redraws the Vim-mode prompt. Register
+# our widget first so its keymap-select hook calls both implementations.
+if command -v starship >/dev/null 2>&1 && [[ "${TERM:-}" != dumb ]]; then
+  eval "$(starship init zsh)"
+fi
 
 # Syntax highlighting loads after the other ZLE widgets so it can wrap them.
 _zsh_source_first zsh-syntax-highlighting \

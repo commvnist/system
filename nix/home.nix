@@ -25,7 +25,9 @@
     hyperfine
     jq
     lazygit
+    python3
     ripgrep
+    sesh
     shellcheck
     shfmt
     starship
@@ -35,6 +37,9 @@
     yq-go
     zsh
     zoxide
+  ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+    wl-clipboard
+    xclip
   ];
 
   programs.atuin = {
@@ -94,6 +99,10 @@
   home.file = {
     ".zshrc".source = ../zsh/.zshrc;
     ".tmux.conf".source = ../tmux/.tmux.conf;
+    ".local/bin/clipboard-copy" = {
+      source = ../clipboard/clipboard-copy;
+      executable = true;
+    };
 
     ".local/share/zsh/plugins/fzf-tab".source = inputs."fzf-tab";
     ".local/share/zsh/plugins/zsh-completions".source = inputs."zsh-completions";
@@ -101,4 +110,7 @@
   };
 
   xdg.configFile."starship.toml".source = ../starship/.config/starship.toml;
+  xdg.configFile."nix/nix.conf".text = ''
+    extra-experimental-features = nix-command flakes
+  '';
 }

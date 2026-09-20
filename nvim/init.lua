@@ -28,6 +28,33 @@ opt.sessionoptions:remove('options')
 opt.viewoptions:remove('options')
 opt.formatoptions:append('j')
 
+-- Prefer the Windows host clipboard on WSL, even when WSLg advertises a
+-- Wayland clipboard. Other desktops use Neovim's native provider. Only make
+-- unnamed yanks and puts system-wide when both copy and paste are available.
+local wsl = vim.fn.has('wsl') == 1 or (vim.env.WSL_DISTRO_NAME or '') ~= ''
+if wsl and vim.fn.executable('clip.exe') == 1 and vim.fn.executable('powershell.exe') == 1 then
+  local paste = {
+    'powershell.exe', '-NoLogo', '-NoProfile', '-NonInteractive', '-Command',
+    '[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); [Console]::Out.Write((Get-Clipboard -Raw) -replace "`r", "")',
+  }
+  vim.g.clipboard = {
+    name = 'Windows clipboard (WSL)',
+    copy = { ['+'] = { 'clip.exe' }, ['*'] = { 'clip.exe' } },
+    paste = { ['+'] = paste, ['*'] = paste },
+    cache_enabled = 0,
+  }
+  opt.clipboard:append('unnamedplus')
+elseif vim.fn.has('mac') == 1 then
+  if vim.fn.executable('pbcopy') == 1 and vim.fn.executable('pbpaste') == 1 then
+    opt.clipboard:append('unnamedplus')
+  end
+elseif ((vim.env.WAYLAND_DISPLAY or '') ~= ''
+    and vim.fn.executable('wl-copy') == 1 and vim.fn.executable('wl-paste') == 1)
+    or ((vim.env.DISPLAY or '') ~= '' and (vim.fn.executable('xclip') == 1
+      or vim.fn.executable('xsel') == 1)) then
+  opt.clipboard:append('unnamedplus')
+end
+
 -- Keep undo history between sessions using Neovim's XDG state directory.
 local undo_dir = vim.fn.stdpath('state') .. '/undo'
 if vim.fn.isdirectory(undo_dir) == 0 then

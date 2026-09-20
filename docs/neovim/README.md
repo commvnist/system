@@ -24,6 +24,23 @@ with native Neovim editing and highlighting.
 are preserved. See the [shortcut guide](../keybindings.md) for editing, search,
 Git, and LSP keys. Persistent undo lives under Neovim's XDG state directory.
 
+## Clipboard
+
+When a working host copy and paste pair is available, ordinary Vim `y`, `d`,
+and `p` share the system clipboard through `unnamedplus`. Use a named register
+or the black-hole register (`"_d`) when you want to preserve clipboard content.
+On WSL2, Neovim explicitly uses Windows `clip.exe` and `powershell.exe`, even
+when WSLg offers Wayland tools. macOS uses `pbcopy`/`pbpaste`. Native Linux
+uses `wl-copy`/`wl-paste` on Wayland or `xclip`/`xsel` on X11; Home Manager
+installs the Linux tools. With no native clipboard pair, Neovim keeps its
+usual internal registers and tmux can still copy outward over OSC 52 when the
+outer terminal supports it.
+
+Run `:set clipboard?` to see whether `unnamedplus` is active and
+`:checkhealth vim.provider` to inspect the selected provider. Test yanking and
+putting both inside and outside tmux on each real terminal you use. Terminal
+clipboard reads over OSC 52 are not universally supported.
+
 For a standalone Neovim configuration outside Nix, [lazy.nvim](https://github.com/folke/lazy.nvim)
 is a well-supported plugin manager. This repository uses Home Manager as its
 plugin manager so the editor and all external tools share one lock file.

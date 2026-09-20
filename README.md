@@ -14,13 +14,16 @@ covers project tasks, the shell utilities, and local command history.
 
 - `zsh`: shell configuration and pinned plugins.
 - `starship`: prompt configuration.
-- `tmux`: terminal multiplexer configuration.
+- `tmux`: terminal multiplexer configuration and sesh session picker.
 - `nvim`: Neovim configuration; `vi` and `vim` invoke Neovim.
 - `mise.toml`: project commands (`mise tasks ls` lists them).
 
 ## Fresh-host setup
 
-Clone this repository and run these commands from its root as your normal user.
+Install Git and the [installer prerequisites](docs/nix/README.md#prerequisites)
+with your host package manager, then clone this repository and run these
+commands from its root as your normal user. On a new WSL2 distro, first choose
+the [default user and systemd mode](docs/nix/README.md#wsl2-first-run).
 If Nix is already installed, skip the first two commands. The [guided installer](bootstrap/install-nix.sh)
 prints its plan and checks build-account IDs before it changes the host; see
 the [installation notes](docs/nix/README.md) for macOS and WSL2 details.
@@ -38,6 +41,17 @@ Once Home Manager is active, review `mise.toml` and run `mise trust mise.toml`
 once per checkout. Then use `mise run doctor`, `mise run check`, and
 `mise run switch` as shorter project commands. `mise run test` and
 `mise run lint` cover the repo checks.
+
+Check `nix flake metadata path:$PWD` in the new shell; Home Manager enables
+flakes for ordinary Nix commands. Neovim yanks and puts use the host clipboard
+when its native copy and paste tools are available. In tmux, copy mode also
+copies to the host through `~/.local/bin/clipboard-copy` or OSC 52. See the
+[clipboard notes](docs/neovim/README.md#clipboard) for platform details.
+
+Git identity and authentication are host-specific. Before your first commit,
+set `git config --global user.name "Your Name"` and
+`git config --global user.email "you@example.com"` if they are not already set.
+Run `gh auth login` if you use GitHub CLI. Keep credentials out of this repo.
 
 `doctor` reports the selected user, home, platform, Nix version, and broken
 links without downloading anything. `check` builds the pinned configuration

@@ -23,15 +23,22 @@ the next key. Native Neovim keys such as `Ctrl-w h/j/k/l` remain available.
 | Neovim normal mode | `gd` / `K` | Go to definition / show hover help when LSP is attached. |
 | Neovim normal mode | `Space c a` / `Space c r` | Code action / rename symbol. |
 | Neovim normal mode | `Space c f` / `Space c d` | Format buffer / show diagnostics. |
+| Neovim | `y` / `p` | Yank to / put from the host clipboard when a native provider is available. |
 | tmux | Prefix `h/j/k/l` | Move left/down/up/right between panes. Repeat direction keys briefly without another prefix. |
 | tmux | Prefix `v` / `s` | Vertical / horizontal split, starting in the current directory. |
 | tmux | Prefix `a` / `z` | Previous pane / zoom pane. |
 | tmux | Prefix `c` | New window in the current directory. |
-| tmux | Prefix `[` then `v`, `y` | Enter copy mode, select text, then copy. Prefix `]` pastes. |
+| tmux | Prefix `t` / `T` | Next / previous window in the session. |
+| tmux | Prefix `p` | Find or create a tmux session for a directory with sesh. |
+| tmux | Prefix `L` | Return to the last session. |
+| tmux | Prefix `w` | Browse sessions and windows. |
+| tmux | Prefix `d` | Detach; `tmux attach` resumes the session later. |
+| tmux | Prefix `?` | Show tmux keys, including descriptions of custom bindings. |
+| tmux | Prefix `[` then `v`, `y` | Enter copy mode, select text, then copy to tmux and the host. Prefix `]` pastes from tmux. |
 | tmux | Prefix `R` | Reload the tmux configuration. |
 | Zsh insert mode | `Esc` | Enter Vim command mode; `i` returns to insert mode. |
 | Zsh command mode | `v` | Edit the command line in `$EDITOR`. |
-| Zsh | `Ctrl-r`, Up Arrow | Search local command history with Atuin. |
+| Zsh | `Ctrl-r` / Up Arrow | Search local command history with Atuin. |
 | Zsh | `Ctrl-t`, `Alt-c` | Find a file or directory with fzf. |
 | Zsh | `Ctrl-p` / `Ctrl-n` | Previous / next Zsh history entry. |
 

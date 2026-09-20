@@ -14,7 +14,11 @@ DATA_HOME = os.environ.get("NVIM_TEST_DATA_HOME", str(Path.home() / ".local" / "
 
 class NeovimNavigationTest(unittest.TestCase):
     def run_nvim(
-        self, commands: str, use_tmux: bool = False, tmux_session: bool = True
+        self,
+        commands: str,
+        use_tmux: bool = False,
+        tmux_session: bool = True,
+        clipboard_mock: bool = False,
     ) -> tuple[str, str]:
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
@@ -34,7 +38,29 @@ class NeovimNavigationTest(unittest.TestCase):
                 XDG_CACHE_HOME=str(directory / "cache"),
                 TERM="xterm-256color",
                 TMUX="",
+                WSL_DISTRO_NAME="",
+                WSL_INTEROP="",
+                WAYLAND_DISPLAY="",
+                DISPLAY="",
             )
+            # These tests must never touch the runner's real clipboard.
+            env["PATH"] = ":".join(
+                part for part in env["PATH"].split(":") if not part.startswith("/mnt/c/")
+            )
+            if clipboard_mock:
+                mock_bin = directory / "clipboard-bin"
+                mock_bin.mkdir()
+                copy = mock_bin / "clip.exe"
+                copy.write_text('#!/bin/sh\ncat > "$MOCK_CLIPBOARD_FILE"\n')
+                paste = mock_bin / "powershell.exe"
+                paste.write_text('#!/bin/sh\ncat "$MOCK_CLIPBOARD_FILE"\n')
+                copy.chmod(0o755)
+                paste.chmod(0o755)
+                env.update(
+                    WSL_DISTRO_NAME="mock-wsl",
+                    MOCK_CLIPBOARD_FILE=str(directory / "clipboard"),
+                    PATH=f"{mock_bin}:{env['PATH']}",
+                )
             if use_tmux:
                 binary = directory / "tmux"
                 binary.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$MOCK_TMUX_LOG"\n')
@@ -124,6 +150,23 @@ class NeovimNavigationTest(unittest.TestCase):
         )
         self.assertEqual(result.splitlines()[0], "1")
         self.assertEqual(tmux_calls, "")
+
+    def test_wsl_yank_and_put_use_windows_host_clipboard(self) -> None:
+        result, _ = self.run_nvim(
+            "lua assert(vim.o.clipboard:find('unnamedplus'))\n"
+            "lua assert(vim.g.clipboard.name == 'Windows clipboard (WSL)')\n"
+            "call setline(1, 'clipboard roundtrip')\n"
+            "normal! \"+yy\n"
+            "lua local p = vim.env.MOCK_CLIPBOARD_FILE; "
+            "assert(vim.wait(3000, function() return vim.fn.filereadable(p) == 1 "
+            "and vim.fn.readfile(p)[1] == 'clipboard roundtrip' end), "
+            "'copied=' .. vim.inspect(vim.fn.filereadable(p) == 1 and vim.fn.readfile(p) or {}))\n"
+            "call setline(1, 'other')\n"
+            "normal! \"+p\n"
+            "let g:commented = getline(2)",
+            clipboard_mock=True,
+        )
+        self.assertEqual(result.splitlines()[4], "clipboard roundtrip")
 
 
 if __name__ == "__main__":

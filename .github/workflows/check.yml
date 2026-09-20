@@ -28,6 +28,7 @@ jobs:
           activation=$(nix --extra-experimental-features 'nix-command flakes' build --no-update-lock-file --no-link --print-out-paths "path:$PWD#checks.$system.activation")
           for managed in \
             .zshrc .tmux.conf .config/nvim/init.lua .config/starship.toml \
+            .config/nix/nix.conf .local/bin/clipboard-copy \
             .config/atuin/config.toml .config/direnv/lib/hm-nix-direnv.sh \
             .local/share/zsh/plugins/fzf-tab \
             .local/share/zsh/plugins/zsh-completions \
@@ -38,6 +39,7 @@ jobs:
               exit 1
             fi
           done
+          test -x "$activation/home-files/.local/bin/clipboard-copy"
           test_home=$(mktemp -d)
           mkdir -p "$test_home/.local/share/zsh" "$test_home/.config/atuin"
           ln -s "$activation/home-files/.zshrc" "$test_home/.zshrc"
@@ -52,6 +54,9 @@ jobs:
             bindkey -M viins "^[[A" | grep -q atuin-up-search-viins &&
             bindkey -M vicmd "^[[A" | grep -q atuin-up-search-vicmd
           '
+          HOME="$test_home" PATH="$activation/home-path/bin:$PATH" TERM=xterm-256color zsh -ic '
+            [[ ${widgets[zle-keymap-select]} == user:starship_zle-keymap-select-wrapped ]]
+          '
           printf '%s\n' "$activation/home-path/bin" >> "$GITHUB_PATH"
           printf 'NVIM_TEST_DATA_HOME=%s\n' "$activation/home-files/.local/share" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/system-direnv/lib"
@@ -60,11 +65,13 @@ jobs:
       - name: Check scripts and bindings
         shell: bash
         run: |
-          bash -n bootstrap/*.sh tests/*.sh
+          bash -n bootstrap/*.sh tests/*.sh clipboard/clipboard-copy
           zsh -n zsh/.zshrc
           nvim --version | sed -n '1p' | grep -q '^NVIM'
           vim --version | sed -n '1p' | grep -q '^NVIM'
           atuin --version
+          sesh --version
+          python3 --version
           mise --version
           mise trust mise.toml
           mise tasks ls
@@ -73,6 +80,10 @@ jobs:
           mise run test
           TERM=xterm-256color STARSHIP_CONFIG="$PWD/starship/.config/starship.toml" starship prompt >/dev/null
           tmux -L system-ci -f "$PWD/tmux/.tmux.conf" new-session -d -s smoke
+          tmux -L system-ci list-keys -T prefix p | grep -Fq 'sesh picker'
+          tmux -L system-ci list-keys -T prefix L | grep -Fq 'switch-client -l'
+          tmux -L system-ci show -sv copy-command | grep -Fq 'clipboard-copy'
+          tmux -L system-ci list-keys -T copy-mode-vi y | grep -Fq 'copy-pipe-and-cancel'
           tmux -L system-ci kill-server
       - name: Check nix-direnv project shell
         shell: bash
@@ -88,6 +99,27 @@ jobs:
           direnv allow .
           # shellcheck disable=SC2016
           direnv exec . bash -c 'test "$SYSTEM_DIRENV_CHECK" = ready'
+      - name: Check nix-direnv flake shell
+        shell: bash
+        run: |
+          test_dir=$(mktemp -d "$RUNNER_TEMP/system-direnv-flake.XXXXXX")
+          system=$(nix --extra-experimental-features 'nix-command flakes' eval --raw --impure --expr builtins.currentSystem)
+          nixpkgs_source=$(nix --extra-experimental-features 'nix-command flakes' eval --raw --impure --expr 'let f = builtins.getFlake (toString ./.) ; in f.inputs.nixpkgs.outPath')
+          cat > "$test_dir/flake.nix" <<EOF
+          {
+            inputs.nixpkgs.url = "path:$nixpkgs_source";
+            outputs = { nixpkgs, ... }: {
+              devShells.$system.default = nixpkgs.legacyPackages.$system.mkShellNoCC {
+                shellHook = "export SYSTEM_FLAKE_DIRENV_CHECK=ready";
+              };
+            };
+          }
+          EOF
+          printf 'type nix_direnv_version >/dev/null || exit 1\nuse flake\n' > "$test_dir/.envrc"
+          cd "$test_dir"
+          direnv allow .
+          # shellcheck disable=SC2016
+          direnv exec . bash -c 'test "$SYSTEM_FLAKE_DIRENV_CHECK" = ready'
       - name: Evaluate every supported system
         if: matrix.runner == 'ubuntu-24.04'
         shell: bash
