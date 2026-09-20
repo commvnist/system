@@ -31,5 +31,7 @@ run = [
 description = "Lint shell scripts and the GitHub Actions workflow"
 run = [
   "shellcheck bootstrap/*.sh tests/*.sh clipboard/clipboard-copy",
+  "zsh -n zsh/.zshenv",
+  "zsh -n zsh/.zshrc",
   "actionlint .github/workflows/check.yml",
 ]

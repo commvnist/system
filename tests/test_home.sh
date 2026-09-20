@@ -10,6 +10,7 @@ mock_bin=$test_dir/bin
 activation=$test_dir/activation
 hm_path=$test_dir/hm
 mkdir -p "$test_home" "$mock_bin" "$activation/home-files/.config/nvim" "$hm_path/bin"
+printf 'configured environment\n' > "$activation/home-files/.zshenv"
 printf 'configured zsh\n' > "$activation/home-files/.zshrc"
 printf 'configured prompt\n' > "$activation/home-files/.config/starship.toml"
 printf 'configured Neovim\n' > "$activation/home-files/.config/nvim/init.lua"
@@ -81,12 +82,18 @@ rm "$mock_bin/stat"
 
 run_home check
 assert_status "$status" 0 "$output"
-assert_contains "$output" '4 managed files, no conflicts'
+assert_contains "$output" '5 managed files, no conflicts'
 
 printf 'my local config\n' > "$test_home/.zshrc"
 run_home check
 assert_status "$status" 1 "$output"
 assert_contains "$output" '.zshrc (existing file differs)'
+rm "$test_home/.zshrc"
+
+cp "$activation/home-files/.zshrc" "$test_home/.zshrc"
+run_home check
+assert_status "$status" 1 "$output"
+assert_contains "$output" '.zshrc (existing file matches but is not managed by Home Manager)'
 rm "$test_home/.zshrc"
 
 mkdir -p "$test_home/.config/nvim"
@@ -140,4 +147,25 @@ run_home rollback
 assert_status "$status" 0 "$output"
 assert_contains "$(cat "$test_dir/hm.log")" 'switch --rollback'
 
-printf 'Home Manager wrapper tests passed (13 scenarios).\n'
+run_home doctor
+assert_status "$status" 1 "$output"
+assert_contains "$output" "Missing managed path: $test_home/.zshrc"
+assert_contains "$output" 'Run check and switch to restore'
+
+ln -s "$activation/home-files/.zshenv" "$test_home/.zshenv"
+ln -s "$activation/home-files/.zshrc" "$test_home/.zshrc"
+ln -s "$activation/home-files/.config/starship.toml" "$test_home/.config/starship.toml"
+ln -s "$activation/home-files/.config/nvim/init.lua" "$test_home/.config/nvim/init.lua"
+ln -s "$activation/home-files/.local/share/zsh/plugins/fzf-tab" "$test_home/.local/share/zsh/plugins/fzf-tab"
+run_home doctor
+assert_status "$status" 0 "$output"
+assert_contains "$output" 'Active home files: 5 checked'
+
+rm "$test_home/.config/starship.toml"
+ln -s "$test_dir/missing" "$test_home/.config/starship.toml"
+run_home doctor
+assert_status "$status" 1 "$output"
+assert_contains "$output" "Broken managed link: $test_home/.config/starship.toml"
+assert_contains "$output" 'Remove or repair 1 broken link'
+
+printf 'Home Manager wrapper tests passed (17 scenarios).\n'

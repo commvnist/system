@@ -13,6 +13,7 @@ first_uid=
 group_gid=
 user_count=32
 ids_supplied=0
+selinux_enforce_file=/sys/fs/selinux/enforce
 temp_dir=
 users_file=
 groups_file=
@@ -28,8 +29,8 @@ usage() {
 Usage: bootstrap/install-nix.sh [options]
 
 Options:
-  --mode auto|multi|single   Default: multi with systemd or on macOS;
-                             single on Linux/WSL2 without systemd.
+  --mode auto|multi|single   Default: multi on macOS or Linux with systemd;
+                             single on Linux without systemd or with enforcing SELinux.
   --first-uid NUMBER         First Nix build user UID (multi-user only).
   --group-gid NUMBER         nixbld group GID (multi-user only).
   --user-count NUMBER        Build users, 1-64 (default: 32).
@@ -100,22 +101,54 @@ detect_platform() {
     *) fail "unsupported platform: $platform (expected macOS or Linux)" ;;
   esac
 
-  if [[ "$mode" == auto ]]; then
-    if [[ "$platform" == Darwin || "$systemd" == 1 ]]; then
-      mode=multi
-    else
-      mode=single
-    fi
-  fi
-  [[ "$mode" != multi || "$platform" != Linux || "$systemd" == 1 ]] ||
-    fail 'multi-user Nix on Linux needs running systemd. Enable systemd in WSL2, restart the distro, or use --mode single.'
-  [[ "$mode" != single || "$platform" != Darwin ]] ||
-    fail 'the upstream macOS installer supports multi-user installation only'
+  select_install_mode
+
   [[ "$mode" != single || "$ids_supplied" == 0 ]] ||
     fail 'UID/GID options apply only to --mode multi'
 
   [[ -n "$first_uid" ]] || first_uid=$default_first_uid
   [[ -n "$group_gid" ]] || group_gid=$default_group_gid
+}
+
+select_install_mode() {
+  local selinux_state=Disabled enforce_flag
+  if [[ "$platform" == Linux && "$systemd" == 1 && "$mode" != single ]]; then
+    if [[ -r "$selinux_enforce_file" ]]; then
+      enforce_flag=$(cat "$selinux_enforce_file") || fail 'could not read SELinux enforcement state'
+      case "$enforce_flag" in
+        1) selinux_state=Enforcing ;;
+        0) selinux_state=Permissive ;;
+        *) fail "unexpected SELinux enforcement value: $enforce_flag" ;;
+      esac
+    elif [[ -e "$selinux_enforce_file" ]]; then
+      fail 'could not read SELinux enforcement state'
+    elif command -v getenforce >/dev/null 2>&1; then
+      selinux_state=$(getenforce) || fail 'could not determine SELinux state with getenforce'
+      case "$selinux_state" in
+        Enforcing|Permissive|Disabled) ;;
+        *) fail "unexpected SELinux state from getenforce: $selinux_state" ;;
+      esac
+    fi
+  fi
+
+  if [[ "$mode" == auto ]]; then
+    if [[ "$platform" == Darwin ]]; then
+      mode=multi
+    elif [[ "$systemd" == 1 && "$selinux_state" != Enforcing ]]; then
+      mode=multi
+    else
+      mode=single
+      if [[ "$selinux_state" == Enforcing ]]; then
+        printf 'Enforcing SELinux detected; selecting single-user Nix.\n'
+      fi
+    fi
+  fi
+  [[ "$mode" != multi || "$platform" != Linux || "$systemd" == 1 ]] ||
+    fail 'multi-user Nix on Linux needs running systemd. Enable systemd in WSL2, restart the distro, or use --mode single.'
+  [[ "$mode" != multi || "$platform" != Linux || "$selinux_state" != Enforcing ]] ||
+    fail 'the upstream shell installer rejects enforcing SELinux in multi-user mode. Use --mode single or the NixOS community nix-installer.'
+  [[ "$mode" != single || "$platform" != Darwin ]] ||
+    fail 'the upstream macOS installer supports multi-user installation only'
 }
 
 check_fresh_host() {
@@ -133,15 +166,6 @@ check_prerequisites() {
   fi
   if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
     fail 'sha256sum or shasum is required to verify the installer'
-  fi
-}
-
-check_linux_selinux() {
-  local state
-  if [[ "$platform" == Linux && "$mode" == multi ]] && command -v getenforce >/dev/null 2>&1; then
-    state=$(getenforce) || fail 'could not determine SELinux state with getenforce'
-    [[ "$state" != Enforcing ]] ||
-      fail 'the upstream shell installer rejects enforcing SELinux. Use the NixOS community nix-installer for this host instead.'
   fi
 }
 
@@ -380,7 +404,6 @@ main() {
   detect_platform
   check_fresh_host
   check_prerequisites
-  check_linux_selinux
   temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/nix-guide.XXXXXX") || fail 'could not create temporary directory'
   trap cleanup EXIT
   if [[ "$mode" == multi ]]; then

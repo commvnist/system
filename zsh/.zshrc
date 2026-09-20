@@ -2,17 +2,6 @@
 export EDITOR=nvim
 export VISUAL=nvim
 
-# Keep Home Manager packages available when a launcher inherits Nix's
-# already-sourced marker but provides a fresh PATH.
-if [[ -d "$HOME/.nix-profile/bin" && ":$PATH:" != *":$HOME/.nix-profile/bin:"* ]]; then
-  export PATH="$HOME/.nix-profile/bin:$PATH"
-fi
-
-# Local user tools
-if [[ -d "$HOME/.local/bin" && ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-  export PATH="$HOME/.local/bin:$PATH"
-fi
-
 # Zsh state
 _zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 _zsh_plugin_dir="$HOME/.local/share/zsh/plugins"

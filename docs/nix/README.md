@@ -98,12 +98,12 @@ user count. A mismatch can prevent nix-darwin activation.
 ## Installation mode
 
 The guide chooses multi-user installation on macOS and on Linux/WSL2 with
-running systemd. Without systemd, Linux/WSL2 defaults to upstream's
-single-user mode, which creates no `nixbld` accounts. For WSL2, enable
-systemd first if you want the multi-user daemon and its build-account
-isolation; then restart the distro and rerun the guide. You can choose
-`--mode multi` or `--mode single` explicitly. UID/GID options apply only to
-multi-user mode.
+running systemd and without enforcing SELinux. Without systemd, or with
+enforcing SELinux, Linux/WSL2 defaults to upstream's single-user mode, which
+creates no `nixbld` accounts. For WSL2, enable systemd first if you want the
+multi-user daemon and its build-account isolation; then restart the distro and
+rerun the guide. You can choose `--mode multi` or `--mode single` explicitly.
+UID/GID options apply only to multi-user mode.
 
 The account check is a preflight, not a reservation. Another process could
 claim an ID before the upstream installer creates its users. The guide checks
@@ -120,8 +120,10 @@ On Linux it uses keyed NSS lookups (including directory accounts supported by
 - Linux multi-user mode needs running systemd in this guide. The upstream
   shell installer can run without it, but daemon setup then needs manual init
   configuration.
-- The upstream multi-user shell installer rejects enforcing SELinux. The newer
-  [NixOS community installer](https://github.com/NixOS/nix-installer) supports
+- The upstream multi-user shell installer rejects enforcing SELinux. Automatic
+  mode selects single-user Nix on such hosts; an explicit `--mode multi`
+  request stops with an explanation. The newer [NixOS community
+  installer](https://github.com/NixOS/nix-installer) supports
   SELinux and has a reviewable plan and installation receipt. It is currently
   marked beta and lists Apple Silicon, rather than Intel, macOS support; this
   guide uses the broadly supported upstream shell installer by default.

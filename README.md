@@ -12,7 +12,7 @@ covers project tasks, the shell utilities, and local command history.
 
 ## Managed configuration
 
-- `zsh`: shell configuration and pinned plugins.
+- `zsh`: shell configuration, PATH setup, and pinned plugins.
 - `starship`: prompt configuration.
 - `tmux`: terminal multiplexer configuration and sesh session picker.
 - `nvim`: Neovim configuration; `vi` and `vim` invoke Neovim.
@@ -53,10 +53,13 @@ set `git config --global user.name "Your Name"` and
 `git config --global user.email "you@example.com"` if they are not already set.
 Run `gh auth login` if you use GitHub CLI. Keep credentials out of this repo.
 
-`doctor` reports the selected user, home, platform, Nix version, and broken
-links without downloading anything. `check` builds the pinned configuration
-and previews managed-file conflicts without changing your home. `switch`
-activates through the pinned Home Manager command. It leaves conflicting
+`doctor` reports the selected user, home, platform, Nix version, and missing or
+broken files from the active Home Manager generation without downloading
+anything. `check` builds the pinned configuration and previews managed-file
+conflicts without changing your home. Existing
+unmanaged files must be moved even when their contents match, so Home Manager
+can own their paths. `switch` activates through the pinned Home Manager
+command. It leaves conflicting
 unmanaged files alone and tells you which paths to inspect. To see or restore
 Home Manager generations, run `bash bootstrap/home.sh status` or
 `bash bootstrap/home.sh rollback`. A rollback needs a previous generation.

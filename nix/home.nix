@@ -97,6 +97,7 @@
 
   # Home Manager is the sole owner of these dotfiles and pinned plugins.
   home.file = {
+    ".zshenv".source = ../zsh/.zshenv;
     ".zshrc".source = ../zsh/.zshrc;
     ".tmux.conf".source = ../tmux/.tmux.conf;
     ".local/bin/clipboard-copy" = {

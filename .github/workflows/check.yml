@@ -16,6 +16,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
         with:
           install_url: https://releases.nixos.org/nix/nix-2.35.2/install
@@ -27,7 +29,7 @@ jobs:
           system=$(nix --extra-experimental-features 'nix-command flakes' eval --raw --impure --expr builtins.currentSystem)
           activation=$(nix --extra-experimental-features 'nix-command flakes' build --no-update-lock-file --no-link --print-out-paths "path:$PWD#checks.$system.activation")
           for managed in \
-            .zshrc .tmux.conf .config/nvim/init.lua .config/starship.toml \
+            .zshenv .zshrc .tmux.conf .config/nvim/init.lua .config/starship.toml \
             .config/nix/nix.conf .local/bin/clipboard-copy \
             .config/atuin/config.toml .config/direnv/lib/hm-nix-direnv.sh \
             .local/share/zsh/plugins/fzf-tab \
@@ -42,9 +44,14 @@ jobs:
           test -x "$activation/home-files/.local/bin/clipboard-copy"
           test_home=$(mktemp -d)
           mkdir -p "$test_home/.local/share/zsh" "$test_home/.config/atuin"
+          ln -s "$activation/home-path" "$test_home/.nix-profile"
+          ln -s "$activation/home-files/.zshenv" "$test_home/.zshenv"
           ln -s "$activation/home-files/.zshrc" "$test_home/.zshrc"
           ln -s "$activation/home-files/.local/share/zsh/plugins" "$test_home/.local/share/zsh/plugins"
           ln -s "$activation/home-files/.config/atuin/config.toml" "$test_home/.config/atuin/config.toml"
+          HOME="$test_home" PATH=/usr/bin:/bin "$activation/home-path/bin/zsh" -c '
+            command -v nvim >/dev/null && command -v mise >/dev/null && command -v tmux >/dev/null
+          '
           HOME="$test_home" PATH="$activation/home-path/bin:$PATH" TERM=dumb zsh -ic '
             bindkey -M vicmd k | grep -q up-line-or-history &&
             bindkey -M vicmd / | grep -q vi-history-search-backward &&
@@ -66,7 +73,6 @@ jobs:
         shell: bash
         run: |
           bash -n bootstrap/*.sh tests/*.sh clipboard/clipboard-copy
-          zsh -n zsh/.zshrc
           nvim --version | sed -n '1p' | grep -q '^NVIM'
           vim --version | sed -n '1p' | grep -q '^NVIM'
           atuin --version
@@ -78,6 +84,10 @@ jobs:
           direnv version
           mise run lint
           mise run test
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            XDG_DATA_HOME="$NVIM_TEST_DATA_HOME" nvim --headless -u "$PWD/nvim/init.lua" \
+              "+lua assert(vim.o.clipboard:find('unnamedplus'), 'macOS clipboard provider is inactive')" +qa
+          fi
           TERM=xterm-256color STARSHIP_CONFIG="$PWD/starship/.config/starship.toml" starship prompt >/dev/null
           tmux -L system-ci -f "$PWD/tmux/.tmux.conf" new-session -d -s smoke
           tmux -L system-ci list-keys -T prefix p | grep -Fq 'sesh picker'

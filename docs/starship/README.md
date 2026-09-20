@@ -1,7 +1,7 @@
 # starship
 
 Home Manager installs Starship and links `starship/.config/starship.toml` to
-`~/.config/starship.toml` (or your configured XDG config directory). Run
+`~/.config/starship.toml`. Run
 `bash bootstrap/home.sh switch` from the repository root after editing it.
 The prompt uses Nerd Font symbols. Select a Nerd Font in the outer terminal,
 including Windows Terminal for WSL2, if any glyphs appear as boxes. Starship

@@ -1,10 +1,14 @@
 # zsh
 
-Home Manager installs `zsh/.zshrc` as `~/.zshrc` and links three plugins
+Home Manager installs `zsh/.zshenv` and `zsh/.zshrc` in your home and links three plugins
 from pinned flake inputs under `~/.local/share/zsh/plugins`. Run
 `bash bootstrap/home.sh switch` after changing the configuration or updating
 the lock file. `bash bootstrap/home.sh doctor` reports how many plugins are
 present in the home directory.
+
+`.zshenv` adds the Home Manager profile and `~/.local/bin` to PATH for every
+Zsh process, including noninteractive commands launched by an app. Interactive
+keybindings and plugins remain in `.zshrc`.
 
 The plugins provide fzf completion tabs, extra command completions, and syntax
 highlighting. Atuin supplies history search at `Ctrl-r` and Up Arrow in both

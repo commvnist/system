@@ -5,6 +5,8 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # Sourcing exposes the preflight and handoff functions without running main.
 source "$repo_root/bootstrap/install-nix.sh"
+# Keep getenforce tests independent of the host's SELinux state.
+selinux_enforce_file=/nonexistent/system-test-selinux-enforce
 
 assert_status() {
   [[ "$1" == "$2" ]] || { printf 'Expected status %s, got %s\n%s\n' "$2" "$1" "$3" >&2; exit 1; }
@@ -123,13 +125,87 @@ assert_contains "$output" 'could not query GID 30000'
 status=0
 output=$(
   (
-    platform=Linux mode=multi
+    platform=Linux mode=auto systemd=1
     getenforce() { printf 'Enforcing\n'; }
-    check_linux_selinux
+    select_install_mode
+    printf 'mode=%s\n' "$mode"
+  ) 2>&1
+) || status=$?
+assert_status "$status" 0 "$output"
+assert_contains "$output" 'mode=single'
+assert_contains "$output" 'Enforcing SELinux detected'
+
+status=0
+output=$(
+  (
+    platform=Linux mode=multi systemd=1
+    getenforce() { printf 'Enforcing\n'; }
+    select_install_mode
   ) 2>&1
 ) || status=$?
 assert_status "$status" 1 "$output"
-assert_contains "$output" 'rejects enforcing SELinux'
+assert_contains "$output" 'rejects enforcing SELinux in multi-user mode'
+
+status=0
+output=$(
+  (
+    platform=Linux mode=auto systemd=1
+    getenforce() { printf 'Permissive\n'; }
+    select_install_mode
+    printf 'mode=%s\n' "$mode"
+  ) 2>&1
+) || status=$?
+assert_status "$status" 0 "$output"
+assert_contains "$output" 'mode=multi'
+
+status=0
+output=$(
+  (
+    platform=Linux mode=auto systemd=1
+    getenforce() { return 1; }
+    select_install_mode
+  ) 2>&1
+) || status=$?
+assert_status "$status" 1 "$output"
+assert_contains "$output" 'could not determine SELinux state'
+
+status=0
+output=$(
+  (
+    platform=Linux mode=auto systemd=1
+    getenforce() { printf 'unknown\n'; }
+    select_install_mode
+  ) 2>&1
+) || status=$?
+assert_status "$status" 1 "$output"
+assert_contains "$output" 'unexpected SELinux state'
+
+status=0
+output=$(
+  (
+    platform=Linux mode=auto systemd=0
+    getenforce() { return 1; }
+    select_install_mode
+    printf 'mode=%s\n' "$mode"
+  ) 2>&1
+) || status=$?
+assert_status "$status" 0 "$output"
+assert_contains "$output" 'mode=single'
+
+status=0
+output=$(
+  (
+    temp_dir=$(mktemp -d)
+    trap 'rm -rf "$temp_dir"' EXIT
+    printf '1\n' > "$temp_dir/enforce"
+    selinux_enforce_file=$temp_dir/enforce
+    platform=Linux mode=auto systemd=1
+    select_install_mode
+    printf 'mode=%s\n' "$mode"
+  ) 2>&1
+) || status=$?
+assert_status "$status" 0 "$output"
+assert_contains "$output" 'mode=single'
 
 status=0
 output=$(
@@ -204,4 +280,4 @@ output=$(
 assert_status "$status" 1 "$output"
 assert_contains "$output" 'installer SHA-256 mismatch'
 
-printf 'Guided Nix installer tests passed (13 scenarios).\n'
+printf 'Guided Nix installer tests passed (19 scenarios).\n'

@@ -90,7 +90,7 @@ profile_path() {
 }
 
 doctor() {
-  local profile path plugin plugin_dir present=0 missing=0
+  local profile path plugin plugin_dir files source relative target count=0 present=0 missing=0 broken=0
   show_target
   find_nix
   "$nix_bin" --version
@@ -98,16 +98,45 @@ doctor() {
   profile=$(profile_path)
   if [[ -n "$profile" ]]; then
     printf 'Active profile: %s -> %s\n' "$profile" "$(readlink "$profile")"
+    files=$profile/home-files
+    [[ -d "$files" ]] || fail "active Home Manager profile has no home-files directory: $profile"
+    find -H "$files" \( -type f -o -type l \) -print0 >/dev/null ||
+      fail "could not read active home files: $files"
+    while IFS= read -r -d '' source; do
+      relative=${source#"$files"/}
+      target=$HOME/$relative
+      count=$((count + 1))
+      if [[ -L "$target" && ! -e "$target" ]]; then
+        printf 'Broken managed link: %s\n' "$target" >&2
+        broken=$((broken + 1))
+      elif [[ ! -e "$target" ]]; then
+        printf 'Missing managed path: %s\n' "$target" >&2
+        missing=$((missing + 1))
+      fi
+    done < <(find -H "$files" \( -type f -o -type l \) -print0)
+    printf 'Active home files: %s checked\n' "$count"
   else
     printf 'Active profile: none (first activation)\n'
+    for path in .zshenv .zshrc .tmux.conf .config/nvim/init.lua .config/starship.toml; do
+      if [[ -L "$HOME/$path" && ! -e "$HOME/$path" ]]; then
+        printf 'Broken link: %s\n' "$HOME/$path" >&2
+        broken=$((broken + 1))
+      fi
+    done
   fi
-  for path in .zshrc .tmux.conf .vimrc .config/nvim/init.lua .config/starship.toml .local/bin/zsh-plugin-sync; do
+  for path in .vimrc .local/bin/zsh-plugin-sync; do
     if [[ -L "$HOME/$path" && ! -e "$HOME/$path" ]]; then
       printf 'Broken link: %s\n' "$HOME/$path" >&2
-      missing=$((missing + 1))
+      broken=$((broken + 1))
     fi
   done
-  ((missing == 0)) || fail "$missing broken home link(s); repair or move them before switching"
+  if ((broken > 0)); then
+    printf 'Remove or repair %s broken link(s), then run check.\n' "$broken" >&2
+  fi
+  if ((missing > 0)); then
+    printf 'Run check and switch to restore %s missing managed path(s).\n' "$missing" >&2
+  fi
+  ((broken == 0 && missing == 0)) || return 1
   plugin_dir=$HOME/.local/share/zsh/plugins
   for plugin in fzf-tab zsh-completions zsh-syntax-highlighting; do
     [[ -d "$plugin_dir/$plugin" ]] && present=$((present + 1))
@@ -183,7 +212,9 @@ preview_targets() {
     elif [[ -e "$target" ]]; then
       if [[ -d "$source" || -d "$target" ]]; then
         add_conflict "$target (existing directory or file has a different type)"
-      elif ! cmp -s "$source" "$target"; then
+      elif cmp -s "$source" "$target"; then
+        add_conflict "$target (existing file matches but is not managed by Home Manager)"
+      else
         add_conflict "$target (existing file differs)"
       fi
     fi
