@@ -134,9 +134,11 @@ build_activation() {
 conflicts=()
 add_conflict() {
   local entry
-  for entry in "${conflicts[@]}"; do
-    [[ "$entry" == "$1" ]] && return
-  done
+  if ((${#conflicts[@]} > 0)); then
+    for entry in "${conflicts[@]}"; do
+      [[ "$entry" == "$1" ]] && return
+    done
+  fi
   conflicts+=("$1")
 }
 
