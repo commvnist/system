@@ -95,6 +95,13 @@ assert_status "$status" 1 "$output"
 assert_contains "$output" 'Broken link:'
 rm "$test_home/.zshrc"
 
+mkdir -p "$test_home/.local/bin"
+ln -s "$repo_root/zsh/.local/bin/zsh-plugin-sync" "$test_home/.local/bin/zsh-plugin-sync"
+run_home doctor
+assert_status "$status" 1 "$output"
+assert_contains "$output" 'zsh-plugin-sync'
+rm "$test_home/.local/bin/zsh-plugin-sync"
+
 run_home switch
 assert_status "$status" 0 "$output"
 assert_contains "$output" 'Activating through pinned Home Manager'
@@ -114,4 +121,4 @@ run_home rollback
 assert_status "$status" 0 "$output"
 assert_contains "$(cat "$test_dir/hm.log")" 'switch --rollback'
 
-printf 'Home Manager wrapper tests passed (11 scenarios).\n'
+printf 'Home Manager wrapper tests passed (12 scenarios).\n'

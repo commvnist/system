@@ -1,9 +1,7 @@
-"""Behavior checks for cross-pane Vim navigation and pinned plugin clones."""
+"""Behavior checks for cross-pane Vim navigation."""
 
-import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import tempfile
 import unittest
@@ -72,25 +70,6 @@ class VimNavigationTest(unittest.TestCase):
         )
         self.assertEqual(result.splitlines()[0], "1")
         self.assertEqual(tmux_calls, "select-pane -l\n")
-
-
-class PluginPinsTest(unittest.TestCase):
-    def test_stow_fallback_matches_flake_lock(self) -> None:
-        lock = json.loads((ROOT / "flake.lock").read_text())
-        helper = (ROOT / "zsh" / ".local" / "bin" / "zsh-plugin-sync").read_text()
-        pins = re.findall(
-            r"^sync_plugin ([\w-]+) (https://[^ ]+) ([0-9a-f]{40})$",
-            helper,
-            re.MULTILINE,
-        )
-        self.assertEqual(len(pins), 5)
-        for name, url, revision in pins:
-            node = lock["nodes"][name]
-            self.assertEqual(revision, node["locked"]["rev"])
-            self.assertEqual(
-                url,
-                f"https://github.com/{node['original']['owner']}/{node['original']['repo']}.git",
-            )
 
 
 if __name__ == "__main__":

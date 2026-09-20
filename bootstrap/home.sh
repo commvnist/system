@@ -98,26 +98,22 @@ doctor() {
   profile=$(profile_path)
   if [[ -n "$profile" ]]; then
     printf 'Active profile: %s -> %s\n' "$profile" "$(readlink "$profile")"
-  elif [[ -L "$HOME/.zshrc" && "$HOME/.zshrc" -ef "$repo_root/zsh/.zshrc" ]]; then
-    printf 'Dotfile owner: Stow links from this repository\n'
   else
     printf 'Active profile: none (first activation)\n'
   fi
-  for path in .zshrc .tmux.conf .vimrc .config/starship.toml; do
+  for path in .zshrc .tmux.conf .vimrc .config/starship.toml .local/bin/zsh-plugin-sync; do
     if [[ -L "$HOME/$path" && ! -e "$HOME/$path" ]]; then
       printf 'Broken link: %s\n' "$HOME/$path" >&2
       missing=$((missing + 1))
     fi
   done
   ((missing == 0)) || fail "$missing broken home link(s); repair or move them before switching"
-  plugin_dir=${ZSH_PLUGIN_DIR:-$HOME/.local/share/zsh/plugins}
+  plugin_dir=$HOME/.local/share/zsh/plugins
   for plugin in fzf-tab zsh-autosuggestions zsh-autopair zsh-history-substring-search zsh-syntax-highlighting; do
     [[ -d "$plugin_dir/$plugin" ]] && present=$((present + 1))
   done
   printf 'Pinned Zsh plugins: %s/5 present in %s\n' "$present" "$plugin_dir"
-  if ((present < 5)); then
-    printf 'Switch will provide them; Stow users can run ./zsh/.local/bin/zsh-plugin-sync.\n'
-  fi
+  if ((present < 5)); then printf 'Switch will provide the pinned plugins.\n'; fi
   printf 'Next: bash bootstrap/home.sh check\n'
 }
 
@@ -198,7 +194,7 @@ preview_targets() {
       shown=$((shown + 1))
     done
     if ((shown > 20)); then printf '  ... and %s more\n' "$((shown - 20))" >&2; fi
-    fail "move or unlink conflicting files, then run check again; Stow users can first run stow -D --target=\"$HOME\" --no-folding zsh starship tmux vim"
+    fail 'move or unlink conflicting files, then run check again'
   fi
   printf 'Build and file preview succeeded: %s managed files, no conflicts\n' "$count"
 }

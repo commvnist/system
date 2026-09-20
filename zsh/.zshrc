@@ -8,7 +8,7 @@ fi
 
 # Zsh state
 _zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
-_zsh_plugin_dir="${ZSH_PLUGIN_DIR:-$HOME/.local/share/zsh/plugins}"
+_zsh_plugin_dir="$HOME/.local/share/zsh/plugins"
 mkdir -p "$_zsh_cache_dir" 2>/dev/null || _zsh_cache_dir="$HOME"
 
 # Prompt
@@ -78,7 +78,7 @@ zmodload zsh/complist 2>/dev/null || true
 autoload -Uz compinit
 compinit -d "$_zsh_cache_dir/zcompdump-${ZSH_VERSION}"
 
-# Plugins come from the pinned Nix inputs or zsh-plugin-sync in Stow mode.
+# Home Manager links these plugins from the pinned Nix inputs.
 
 _zsh_source_first() {
   local name="$1"

@@ -1,14 +1,8 @@
 # starship
 
-GNU Stow package for the Starship prompt configuration. Install Starship and
-GNU Stow with your platform's package manager, then from the repository root:
-
-```sh
-stow -n -v --target="$HOME" --no-folding starship
-stow --target="$HOME" --no-folding starship
-```
-
-This links `starship/.config/starship.toml` to `~/.config/starship.toml`.
+Home Manager installs Starship and links `starship/.config/starship.toml` to
+`~/.config/starship.toml` (or your configured XDG config directory). Run
+`bash bootstrap/home.sh switch` from the repository root after editing it.
 The prompt uses Nerd Font symbols. Select a Nerd Font in the outer terminal,
 including Windows Terminal for WSL2, if any glyphs appear as boxes. Starship
 shows the current directory, Git state, command duration/status, and a Vim-mode

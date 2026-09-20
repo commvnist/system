@@ -103,8 +103,9 @@ On Linux it uses keyed NSS lookups (including directory accounts supported by
 After opening a new shell, run `nix --version`, then
 `bash bootstrap/home.sh doctor`, `check`, and `switch` in that order. A
 conflict from `check` means an existing path is owned outside Home Manager;
-inspect it and move or unlink it deliberately. Stow links can be removed with
-`stow -D --target="$HOME" --no-folding zsh starship tmux vim`.
+inspect it and move or unlink it deliberately. See the
+[one-time Stow migration](../../README.md#fresh-host-setup) if you used this
+repository before Home Manager became its sole configuration manager.
 
 Use `bash bootstrap/home.sh status` to list generations and
 `bash bootstrap/home.sh rollback` to activate the previous one. Rollback works
@@ -130,7 +131,6 @@ Run the local checks without activating your home:
 ```sh
 bash tests/test_install_nix.sh
 bash tests/test_home.sh
-python3 bootstrap/sync-plugin-pins.py --check
 python3 -m unittest discover -s tests -p test_config.py
 nix --extra-experimental-features 'nix-command flakes' flake check --no-update-lock-file "path:$PWD"
 ```
@@ -143,8 +143,7 @@ when updating Nixpkgs or Home Manager; changing it can alter migration defaults.
 Nixpkgs 26.05 is the last supported release for Intel macOS, with maintenance
 ending at the end of 2026. This repository keeps its 26.05 pin and tests Intel
 macOS while supported. A future Nixpkgs branch upgrade must either retain a
-separate 26.05 Intel pin or retire Intel Nix support explicitly; the Stow
-fallback remains available for a config-only setup.
+separate 26.05 Intel pin or retire Intel Nix support explicitly.
 
 Sources: [nix.dev installation guide](https://nix.dev/install-nix),
 [Linux installer defaults](https://github.com/NixOS/nix/blob/master/scripts/install-systemd-multi-user.sh),

@@ -26,15 +26,26 @@ jobs:
           nix --extra-experimental-features 'nix-command flakes' flake check --no-update-lock-file "path:$PWD"
           system=$(nix --extra-experimental-features 'nix-command flakes' eval --raw --impure --expr builtins.currentSystem)
           activation=$(nix --extra-experimental-features 'nix-command flakes' build --no-update-lock-file --no-link --print-out-paths "path:$PWD#checks.$system.activation")
+          for managed in \
+            .zshrc .tmux.conf .vimrc .config/starship.toml \
+            .local/share/zsh/plugins/fzf-tab \
+            .local/share/zsh/plugins/zsh-autosuggestions \
+            .local/share/zsh/plugins/zsh-autopair \
+            .local/share/zsh/plugins/zsh-history-substring-search \
+            .local/share/zsh/plugins/zsh-syntax-highlighting; do
+            if [[ ! -L "$activation/home-files/$managed" ]]; then
+              printf 'Missing Home Manager link: %s\n' "$managed" >&2
+              exit 1
+            fi
+          done
           printf '%s\n' "$activation/home-path/bin" >> "$GITHUB_PATH"
-      - name: Check scripts, bindings, and fallbacks
+      - name: Check scripts and bindings
         shell: bash
         run: |
-          bash -n bootstrap/*.sh tests/*.sh zsh/.local/bin/zsh-plugin-sync
+          bash -n bootstrap/*.sh tests/*.sh
           zsh -n zsh/.zshrc
           bash tests/test_install_nix.sh
           bash tests/test_home.sh
-          python3 bootstrap/sync-plugin-pins.py --check
           python3 -m unittest discover -s tests -p test_config.py
           TERM=xterm-256color STARSHIP_CONFIG="$PWD/starship/.config/starship.toml" starship prompt >/dev/null
           tmux -L system-ci -f "$PWD/tmux/.tmux.conf" new-session -d -s smoke
@@ -48,6 +59,6 @@ jobs:
         shell: bash
         run: |
           actionlint_path=$(nix --extra-experimental-features 'nix-command flakes' build --impure --no-link --print-out-paths --expr "let f = builtins.getFlake \"path:$PWD\"; in f.inputs.nixpkgs.legacyPackages.x86_64-linux.actionlint")
-          shellcheck_path=$(nix --extra-experimental-features 'nix-command flakes' build --impure --no-link --print-out-paths --expr "let f = builtins.getFlake \"path:$PWD\"; in f.inputs.nixpkgs.legacyPackages.x86_64-linux.shellcheck")
-          "$shellcheck_path/bin/shellcheck" bootstrap/*.sh tests/*.sh zsh/.local/bin/zsh-plugin-sync
+          shellcheck_path=$(nix --extra-experimental-features 'nix-command flakes' build --impure --no-link --print-out-paths --expr "let f = builtins.getFlake \"path:$PWD\"; in f.inputs.nixpkgs.legacyPackages.x86_64-linux.shellcheck.bin")
+          "$shellcheck_path/bin/shellcheck" bootstrap/*.sh tests/*.sh
           PATH="$shellcheck_path/bin:$PATH" "$actionlint_path/bin/actionlint" .github/workflows/check.yml

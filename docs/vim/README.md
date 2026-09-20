@@ -1,14 +1,7 @@
 # vim
 
-GNU Stow package for Vim configuration. Install Vim and GNU Stow with your
-platform's package manager, then from the repository root:
-
-```sh
-stow -n -v --target="$HOME" --no-folding vim
-stow --target="$HOME" --no-folding vim
-```
-
-This links `vim/.vimrc` to `~/.vimrc`.
+Home Manager installs Vim and links `vim/.vimrc` to `~/.vimrc`. Run
+`bash bootstrap/home.sh switch` from the repository root after editing it.
 
 The configuration uses stock Vim with no plugin dependency. Press `Space` as
 the leader key: `Space v` and `Space s` open vertical and horizontal splits;

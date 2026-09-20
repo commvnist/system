@@ -14,19 +14,16 @@
     git
     ripgrep
     starship
-    stow
     tmux
     vim
     zsh
   ];
 
-  # These same files can be used with GNU Stow when Nix is unavailable.
+  # Home Manager is the sole owner of these dotfiles and pinned plugins.
   home.file = {
     ".zshrc".source = ../zsh/.zshrc;
     ".tmux.conf".source = ../tmux/.tmux.conf;
     ".vimrc".source = ../vim/.vimrc;
-    ".config/starship.toml".source = ../starship/.config/starship.toml;
-    ".local/bin/zsh-plugin-sync".source = ../zsh/.local/bin/zsh-plugin-sync;
 
     ".local/share/zsh/plugins/fzf-tab".source = inputs."fzf-tab";
     ".local/share/zsh/plugins/zsh-autosuggestions".source = inputs."zsh-autosuggestions";
@@ -34,4 +31,6 @@
     ".local/share/zsh/plugins/zsh-history-substring-search".source = inputs."zsh-history-substring-search";
     ".local/share/zsh/plugins/zsh-syntax-highlighting".source = inputs."zsh-syntax-highlighting";
   };
+
+  xdg.configFile."starship.toml".source = ../starship/.config/starship.toml;
 }

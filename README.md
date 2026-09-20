@@ -2,14 +2,15 @@
 
 Vim-first shell and editor configuration for macOS and Linux, including WSL2.
 The pinned Nix flake installs the tools and Zsh plugins with Home Manager.
-GNU Stow provides a config-only fallback when Nix is unavailable.
+Home Manager also installs every dotfile; the files in this repository are
+their sources, and `flake.lock` pins the tool and plugin versions.
 
 The [keyboard shortcut guide](docs/keybindings.md) explains Vim, tmux, and
 Zsh navigation in one place.
 
-## Packages
+## Managed configuration
 
-- `zsh`: shell configuration and optional plugin sync helper.
+- `zsh`: shell configuration and pinned plugins.
 - `starship`: prompt configuration.
 - `tmux`: terminal multiplexer configuration.
 - `vim`: editor configuration.
@@ -38,8 +39,12 @@ unmanaged files alone and tells you which paths to inspect. To see or restore
 Home Manager generations, run `bash bootstrap/home.sh status` or
 `bash bootstrap/home.sh rollback`. A rollback needs a previous generation.
 
-If you previously linked these packages with Stow, unlink them with
-`stow -D --target="$HOME" --no-folding zsh starship tmux vim` before switching.
+If you used this repository's former Stow setup, run
+`stow -D --target="$HOME" --no-folding zsh starship tmux vim` once before
+switching. The `check` command identifies any links still owned by another
+source.
+The former plugin helper may leave a broken `~/.local/bin/zsh-plugin-sync`
+symlink; remove it if it points into this repository.
 Nix-managed dotfiles are copied into the Nix store, so edit the repository and
 run `switch` again to apply changes. Changing your login shell is a separate
 host setting. The wrapper uses `--impure` only for the current username and
@@ -49,30 +54,12 @@ The pinned 26.05 package set evaluates on Intel macOS, but [Nixpkgs warns](https
 that 26.05 is its last release supporting `x86_64-darwin`. Keep that constraint
 in mind when updating the lock file on an Intel Mac.
 
-## Stow fallback
-
-Install Git, GNU Stow, zsh, Starship, tmux, and Vim with your platform's package
-manager. `fzf` is optional; the Zsh configuration uses it when available.
-
-From the repository root, preview and then stow the packages you want:
-
-```sh
-stow -n -v --target="$HOME" --no-folding zsh starship tmux vim
-stow --target="$HOME" --no-folding zsh starship tmux vim
-```
-
-The Zsh package includes a plugin sync helper pinned to the revisions in
-`flake.lock`. Run `./zsh/.local/bin/zsh-plugin-sync` after linking. Stow links
-the configuration but does not pin the platform packages themselves. Changes
-to the linked files take effect without a Nix switch. See the [Zsh notes](docs/zsh/README.md).
-
 ## Updating and verification
 
 `bash bootstrap/update.sh [input ...]` updates selected flake inputs (or all
-inputs when none are named), regenerates the Stow plugin pins, builds the native
-Home Manager check, and evaluates all supported systems. Review the changes to
-`flake.lock` and the helper before running `switch`. The update command does
-not activate your home and needs Python 3. The [validation guide](docs/nix/README.md#validation-and-recovery)
+inputs when none are named), builds the native Home Manager check, and
+evaluates all supported systems. Review changes to `flake.lock` before running
+`switch`. The update command does not activate your home. The [validation guide](docs/nix/README.md#validation-and-recovery)
 covers tests, first-host smoke checks, and rollback.
 
 Package notes are indexed in [docs/README.md](docs/README.md).

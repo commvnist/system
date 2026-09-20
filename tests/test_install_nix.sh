@@ -19,11 +19,15 @@ output=$(
   (
     platform=Linux first_uid=30001 group_gid=30000 user_count=32
     lookup_account() {
-      case "$1:$2" in
-        group:30000) printf 'othergroup\n'; return 0 ;;
-        passwd:30002) printf 'otheruser\n'; return 0 ;;
-        *) return 1 ;;
-      esac
+      if [[ "$1:$2" == group:30000 ]]; then
+        printf 'othergroup\n'
+        return 0
+      fi
+      if [[ "$1:$2" == passwd:30002 ]]; then
+        printf 'otheruser\n'
+        return 0
+      fi
+      return 1
     }
     check_ids
     printf '%s\n' "${conflicts[@]}"
@@ -57,11 +61,13 @@ output=$(
     temp_dir=$(mktemp -d)
     trap 'rm -rf "$temp_dir"' EXIT
     dscl() {
-      case "$*" in
-        '/Search -list /Users UniqueID') printf 'existing 351\n' ;;
-        '/Search -list /Groups PrimaryGroupID') printf 'staff 350\n' ;;
-        *) return 1 ;;
-      esac
+      if [[ "$*" == '/Search -list /Users UniqueID' ]]; then
+        printf 'existing 351\n'
+      elif [[ "$*" == '/Search -list /Groups PrimaryGroupID' ]]; then
+        printf 'staff 350\n'
+      else
+        return 1
+      fi
     }
     load_accounts
     check_ids
