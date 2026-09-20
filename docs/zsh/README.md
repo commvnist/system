@@ -1,10 +1,16 @@
 # zsh
 
-Home Manager installs `zsh/.zshrc` as `~/.zshrc` and links the five plugins
+Home Manager installs `zsh/.zshrc` as `~/.zshrc` and links four plugins
 from pinned flake inputs under `~/.local/share/zsh/plugins`. Run
 `bash bootstrap/home.sh switch` after changing the configuration or updating
 the lock file. `bash bootstrap/home.sh doctor` reports how many plugins are
 present in the home directory.
+
+The plugins provide fzf completion tabs, extra command completions, substring
+history search, and syntax highlighting. Nix also installs `zoxide`: use `z`
+to jump to a frequently used directory and `zi` to choose one interactively.
+Autosuggestions and automatic bracket pairing were removed because their
+upstreams no longer met this repository's active-maintenance rule.
 
 To see individual missing plugin names during shell startup, set
 `ZSH_PLUGIN_DEBUG=1` temporarily.

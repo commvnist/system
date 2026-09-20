@@ -27,18 +27,19 @@ jobs:
           system=$(nix --extra-experimental-features 'nix-command flakes' eval --raw --impure --expr builtins.currentSystem)
           activation=$(nix --extra-experimental-features 'nix-command flakes' build --no-update-lock-file --no-link --print-out-paths "path:$PWD#checks.$system.activation")
           for managed in \
-            .zshrc .tmux.conf .vimrc .config/starship.toml \
+            .zshrc .tmux.conf .config/nvim/init.lua .config/starship.toml \
             .local/share/zsh/plugins/fzf-tab \
-            .local/share/zsh/plugins/zsh-autosuggestions \
-            .local/share/zsh/plugins/zsh-autopair \
+            .local/share/zsh/plugins/zsh-completions \
             .local/share/zsh/plugins/zsh-history-substring-search \
-            .local/share/zsh/plugins/zsh-syntax-highlighting; do
+            .local/share/zsh/plugins/zsh-syntax-highlighting \
+            .local/share/nvim/site/pack/hm; do
             if [[ ! -L "$activation/home-files/$managed" ]]; then
               printf 'Missing Home Manager link: %s\n' "$managed" >&2
               exit 1
             fi
           done
           printf '%s\n' "$activation/home-path/bin" >> "$GITHUB_PATH"
+          printf 'NVIM_TEST_DATA_HOME=%s\n' "$activation/home-files/.local/share" >> "$GITHUB_ENV"
       - name: Check scripts and bindings
         shell: bash
         run: |
@@ -47,6 +48,8 @@ jobs:
           bash tests/test_install_nix.sh
           bash tests/test_home.sh
           python3 -m unittest discover -s tests -p test_config.py
+          nvim --version | sed -n '1p' | grep -q '^NVIM'
+          vim --version | sed -n '1p' | grep -q '^NVIM'
           TERM=xterm-256color STARSHIP_CONFIG="$PWD/starship/.config/starship.toml" starship prompt >/dev/null
           tmux -L system-ci -f "$PWD/tmux/.tmux.conf" new-session -d -s smoke
           tmux -L system-ci kill-server

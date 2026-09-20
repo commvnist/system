@@ -1,5 +1,5 @@
 {
-  description = "Portable Vim-first shell and terminal setup";
+  description = "Portable Neovim and Vim-style shell setup";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -11,12 +11,8 @@
       url = "github:Aloxaf/fzf-tab";
       flake = false;
     };
-    zsh-autosuggestions = {
-      url = "github:zsh-users/zsh-autosuggestions";
-      flake = false;
-    };
-    zsh-autopair = {
-      url = "github:hlissner/zsh-autopair";
+    zsh-completions = {
+      url = "github:zsh-users/zsh-completions";
       flake = false;
     };
     zsh-history-substring-search = {

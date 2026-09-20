@@ -2,16 +2,27 @@
 
 The setup uses Vim's normal-mode movement keys as the common language. `h/j/k/l`
 means left/down/up/right. Prefix means press `Ctrl-a`, release it, then press
-the next key. Native Vim keys such as `Ctrl-w h/j/k/l` remain available.
+the next key. Native Neovim keys such as `Ctrl-w h/j/k/l` remain available.
 
 | Where | Keys | Action |
 | --- | --- | --- |
-| Vim normal mode | `Ctrl-h/j/k/l` | Move to a split; at an edge, move to the adjacent tmux pane. |
-| Vim normal mode | `Ctrl-\` | Previous Vim split, or previous tmux pane at an edge. |
-| Vim normal mode | `Space v` / `Space s` | Vertical / horizontal split. |
-| Vim normal mode | `Space w` / `Space q` | Write / quit the current window. |
-| Vim normal mode | `Space h` | Clear search highlighting. |
-| Vim normal mode | `[b` / `]b` | Previous / next buffer. |
+| Neovim normal mode | `Ctrl-h/j/k/l` | Move to a split; at an edge, move to the adjacent tmux pane. |
+| Neovim normal mode | `Ctrl-\` | Previous Neovim split, or previous tmux pane at an edge. |
+| Neovim normal mode | `Space v` / `Space s` | Vertical / horizontal split. |
+| Neovim normal mode | `Space w` / `Space q` | Write / quit the current window. |
+| Neovim normal mode | `Space h` | Clear search highlighting. |
+| Neovim normal mode | `[b` / `]b` | Previous / next buffer. |
+| Neovim normal mode | `Space f f` / `Space f g` | Find files / search project text. |
+| Neovim normal mode | `Space f b` / `Space f r` | Find open buffers / recent files. |
+| Neovim normal mode | `Space f h` / `Space f k` | Find help / search all keybindings. |
+| Neovim normal mode | `]h` / `[h` | Next / previous Git change. |
+| Neovim normal mode | `Space g h` / `Space g b` | Preview Git change / blame line. |
+| Neovim normal mode | `gcc` / visual `gc` | Toggle comment on a line / selection. |
+| Neovim normal mode | `ys` + motion + character | Surround text, for example `ysiw"` quotes a word. |
+| Neovim normal mode | `ds` + character / `cs` + old + new | Delete / replace surrounding text. |
+| Neovim normal mode | `gd` / `K` | Go to definition / show hover help when LSP is attached. |
+| Neovim normal mode | `Space c a` / `Space c r` | Code action / rename symbol. |
+| Neovim normal mode | `Space c f` / `Space c d` | Format buffer / show diagnostics. |
 | tmux | Prefix `h/j/k/l` | Move left/down/up/right between panes. Repeat direction keys briefly without another prefix. |
 | tmux | Prefix `v` / `s` | Vertical / horizontal split, starting in the current directory. |
 | tmux | Prefix `a` / `z` | Previous pane / zoom pane. |
@@ -23,9 +34,13 @@ the next key. Native Vim keys such as `Ctrl-w h/j/k/l` remain available.
 | Zsh | `Ctrl-r`, `Ctrl-t`, `Alt-c` | fzf history, file, and directory search when fzf is installed. |
 | Zsh | Up/Down | Search history for the text already typed, when the plugin is installed. |
 
-`Ctrl-h/j/k/l` are mapped only **inside Vim**. Shell programs retain their
+Press `Space` and wait briefly for a hint menu showing the next keys. The
+editor still uses standard Vim motions, operators, and text objects. Completion
+appears automatically; use `Ctrl-n`/`Ctrl-p` to choose and `Ctrl-y` to accept.
+
+`Ctrl-h/j/k/l` are mapped only **inside Neovim**. Shell programs retain their
 normal Ctrl keys; use the tmux prefix from a shell. Press prefix twice to send
-`Ctrl-a` to a program inside tmux. Vim insert-mode Backspace and newline keep
+`Ctrl-a` to a program inside tmux. Neovim insert-mode Backspace and newline keep
 their normal meanings.
 
 The Starship prompt marks Vim insert mode with `❯` and command mode with `❮`.

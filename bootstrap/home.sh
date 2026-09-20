@@ -101,7 +101,7 @@ doctor() {
   else
     printf 'Active profile: none (first activation)\n'
   fi
-  for path in .zshrc .tmux.conf .vimrc .config/starship.toml .local/bin/zsh-plugin-sync; do
+  for path in .zshrc .tmux.conf .vimrc .config/nvim/init.lua .config/starship.toml .local/bin/zsh-plugin-sync; do
     if [[ -L "$HOME/$path" && ! -e "$HOME/$path" ]]; then
       printf 'Broken link: %s\n' "$HOME/$path" >&2
       missing=$((missing + 1))
@@ -109,11 +109,11 @@ doctor() {
   done
   ((missing == 0)) || fail "$missing broken home link(s); repair or move them before switching"
   plugin_dir=$HOME/.local/share/zsh/plugins
-  for plugin in fzf-tab zsh-autosuggestions zsh-autopair zsh-history-substring-search zsh-syntax-highlighting; do
+  for plugin in fzf-tab zsh-completions zsh-history-substring-search zsh-syntax-highlighting; do
     [[ -d "$plugin_dir/$plugin" ]] && present=$((present + 1))
   done
-  printf 'Pinned Zsh plugins: %s/5 present in %s\n' "$present" "$plugin_dir"
-  if ((present < 5)); then printf 'Switch will provide the pinned plugins.\n'; fi
+  printf 'Pinned Zsh plugins: %s/4 present in %s\n' "$present" "$plugin_dir"
+  if ((present < 4)); then printf 'Switch will provide the pinned plugins.\n'; fi
   printf 'Next: bash bootstrap/home.sh check\n'
 }
 

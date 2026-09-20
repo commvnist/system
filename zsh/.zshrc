@@ -1,5 +1,6 @@
 # Editor
-export EDITOR=vim
+export EDITOR=nvim
+export VISUAL=nvim
 
 # Keep Home Manager packages available when a launcher inherits Nix's
 # already-sourced marker but provides a fresh PATH.
@@ -78,6 +79,9 @@ setopt HIST_SAVE_NO_DUPS
 
 # Completion
 
+if [[ -d "$_zsh_plugin_dir/zsh-completions/src" ]]; then
+  fpath=("$_zsh_plugin_dir/zsh-completions/src" $fpath)
+fi
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' menu select
 zmodload zsh/complist 2>/dev/null || true
@@ -107,14 +111,6 @@ _zsh_source_first fzf-tab \
   "$_zsh_plugin_dir/fzf-tab/fzf-tab.plugin.zsh" \
   "$_zsh_plugin_dir/fzf-tab/fzf-tab.zsh"
 
-_zsh_source_first zsh-autosuggestions \
-  "$_zsh_plugin_dir/zsh-autosuggestions/zsh-autosuggestions.zsh" \
-  "$_zsh_plugin_dir/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh"
-
-_zsh_source_first zsh-autopair \
-  "$_zsh_plugin_dir/zsh-autopair/autopair.zsh" \
-  "$_zsh_plugin_dir/zsh-autopair/zsh-autopair.plugin.zsh"
-
 _zsh_source_first zsh-history-substring-search \
   "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.zsh" \
   "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.plugin.zsh"
@@ -122,6 +118,10 @@ _zsh_source_first zsh-history-substring-search \
 # fzf
 if command -v fzf >/dev/null 2>&1 && [[ -t 0 && -t 1 ]]; then
   source <(fzf --zsh 2>/dev/null)
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
 fi
 
 # Vim mode. KEYTIMEOUT is in hundredths of a second; 20 keeps Esc responsive
@@ -177,7 +177,7 @@ zle-line-finish() {
 }
 zle -N zle-line-finish
 
-# Shell editing: Esc enters normal mode, v opens the command in Vim, and
+# Shell editing: Esc enters normal mode, v opens the command in Neovim, and
 # Ctrl-r/Ctrl-t/Alt-c use fzf when available. Arrow history search is optional.
 for _keymap in viins vicmd; do
   bindkey -M "$_keymap" "^[[1;5C" forward-word
@@ -203,8 +203,6 @@ _zsh_bind_widget_all_keymaps "^N" history-substring-search-down
 _zsh_bind_widget_all_keymaps "^R" fzf-history-widget
 _zsh_bind_widget_all_keymaps "^T" fzf-file-widget
 _zsh_bind_widget_all_keymaps "^[c" fzf-cd-widget
-_zsh_bind_widget viins "^F" autosuggest-accept
-
 unset -f _zsh_bind_widget _zsh_bind_widget_all_keymaps
 unset _keymap
 

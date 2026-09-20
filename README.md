@@ -1,11 +1,12 @@
 # system
 
-Vim-first shell and editor configuration for macOS and Linux, including WSL2.
-The pinned Nix flake installs the tools and Zsh plugins with Home Manager.
+Vim-style shell and Neovim configuration for macOS and Linux, including WSL2.
+The pinned Nix flake installs the tools, language servers, syntax parsers, and
+Zsh/Neovim plugins with Home Manager.
 Home Manager also installs every dotfile; the files in this repository are
 their sources, and `flake.lock` pins the tool and plugin versions.
 
-The [keyboard shortcut guide](docs/keybindings.md) explains Vim, tmux, and
+The [keyboard shortcut guide](docs/keybindings.md) explains Neovim, tmux, and
 Zsh navigation in one place.
 
 ## Managed configuration
@@ -13,7 +14,7 @@ Zsh navigation in one place.
 - `zsh`: shell configuration and pinned plugins.
 - `starship`: prompt configuration.
 - `tmux`: terminal multiplexer configuration.
-- `vim`: editor configuration.
+- `nvim`: Neovim configuration; `vi` and `vim` invoke Neovim.
 
 ## Fresh-host setup
 
@@ -40,8 +41,9 @@ Home Manager generations, run `bash bootstrap/home.sh status` or
 `bash bootstrap/home.sh rollback`. A rollback needs a previous generation.
 
 If you used this repository's former Stow setup, run
-`stow -D --target="$HOME" --no-folding zsh starship tmux vim` once before
-switching. The `check` command identifies any links still owned by another
+`stow -D --target="$HOME" --no-folding zsh starship tmux` once before
+switching. Unlink the old `~/.vimrc` if it points to this repository's retired
+`vim/.vimrc`. The `check` command identifies links still owned by another
 source.
 The former plugin helper may leave a broken `~/.local/bin/zsh-plugin-sync`
 symlink; remove it if it points into this repository.

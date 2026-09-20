@@ -9,9 +9,10 @@ test_home=$test_dir/home
 mock_bin=$test_dir/bin
 activation=$test_dir/activation
 hm_path=$test_dir/hm
-mkdir -p "$test_home" "$mock_bin" "$activation/home-files/.config" "$hm_path/bin"
+mkdir -p "$test_home" "$mock_bin" "$activation/home-files/.config/nvim" "$hm_path/bin"
 printf 'configured zsh\n' > "$activation/home-files/.zshrc"
 printf 'configured prompt\n' > "$activation/home-files/.config/starship.toml"
+printf 'configured Neovim\n' > "$activation/home-files/.config/nvim/init.lua"
 mkdir -p "$test_dir/pinned-plugin" "$activation/home-files/.local/share/zsh/plugins"
 printf 'pinned plugin\n' > "$test_dir/pinned-plugin/plugin.zsh"
 ln -s "$test_dir/pinned-plugin" "$activation/home-files/.local/share/zsh/plugins/fzf-tab"
@@ -37,6 +38,17 @@ printf '%s\n' "$*" >> "$MOCK_HM_LOG"
 case "$*" in *generations*) printf 'mock generation 1 (current)\n' ;; esac
 EOF
 chmod +x "$mock_bin/uname" "$mock_bin/nix" "$hm_path/bin/home-manager"
+
+# A real Home Manager profile for the test runner must not affect this mock home.
+cat > "$mock_bin/id" <<'EOF'
+#!/bin/sh
+case "$1" in
+  -un) printf 'system-test\n' ;;
+  -u) /usr/bin/id -u ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$mock_bin/id"
 
 assert_contains() {
   [[ "$1" == *"$2"* ]] || { printf 'Missing expected text: %s\n%s\n' "$2" "$1" >&2; exit 1; }
@@ -69,13 +81,20 @@ rm "$mock_bin/stat"
 
 run_home check
 assert_status "$status" 0 "$output"
-assert_contains "$output" '3 managed files, no conflicts'
+assert_contains "$output" '4 managed files, no conflicts'
 
 printf 'my local config\n' > "$test_home/.zshrc"
 run_home check
 assert_status "$status" 1 "$output"
 assert_contains "$output" '.zshrc (existing file differs)'
 rm "$test_home/.zshrc"
+
+mkdir -p "$test_home/.config/nvim"
+printf 'my local config\n' > "$test_home/.config/nvim/init.lua"
+run_home check
+assert_status "$status" 1 "$output"
+assert_contains "$output" '.config/nvim/init.lua (existing file differs)'
+rm "$test_home/.config/nvim/init.lua"
 
 ln -s "$repo_root/zsh/.zshrc" "$test_home/.zshrc"
 run_home check
@@ -121,4 +140,4 @@ run_home rollback
 assert_status "$status" 0 "$output"
 assert_contains "$(cat "$test_dir/hm.log")" 'switch --rollback'
 
-printf 'Home Manager wrapper tests passed (12 scenarios).\n'
+printf 'Home Manager wrapper tests passed (13 scenarios).\n'

@@ -119,21 +119,26 @@ actually selected. The separate NixOS community installer has its own receipt
 and `repair` command.
 
 For a disposable fresh user or VM, validate an actual install and switch, then
-change one config, switch again, and roll back. Check a deliberate `~/.vimrc`
+change one config, switch again, and roll back. Check a deliberate
+`~/.config/nvim/init.lua`
 collision before the first switch. On WSL2, test with and without systemd if
 both modes matter to you; on macOS, test on the architecture you own. Also
-verify Zsh Vim mode, Vim/tmux pane navigation, and terminal clipboard access.
+verify Zsh Vim mode, Neovim/tmux pane navigation, and terminal clipboard access.
 Automated checks run on Linux, Apple Silicon macOS, and Intel macOS in
 `.github/workflows/check.yml`; WSL2 installation remains a manual smoke test.
 
-Run the local checks without activating your home:
+Run the bootstrap checks without activating your home:
 
 ```sh
 bash tests/test_install_nix.sh
 bash tests/test_home.sh
-python3 -m unittest discover -s tests -p test_config.py
 nix --extra-experimental-features 'nix-command flakes' flake check --no-update-lock-file "path:$PWD"
 ```
+
+The Neovim navigation tests need the built plugin directory. CI supplies it
+from the activation package before running
+`python3 -m unittest discover -s tests -p test_config.py`. After `switch`, that
+command works directly in a new shell.
 
 The flake's `checks` output builds an activation package with a fixed test
 identity. The actual `homeConfigurations` use your current `USER` and `HOME`
