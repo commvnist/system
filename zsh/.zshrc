@@ -1,6 +1,12 @@
 # Editor
 export EDITOR=vim
 
+# Keep Home Manager packages available when a launcher inherits Nix's
+# already-sourced marker but provides a fresh PATH.
+if [[ -d "$HOME/.nix-profile/bin" && ":$PATH:" != *":$HOME/.nix-profile/bin:"* ]]; then
+  export PATH="$HOME/.nix-profile/bin:$PATH"
+fi
+
 # Local user tools
 if [[ -d "$HOME/.local/bin" && ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
   export PATH="$HOME/.local/bin:$PATH"
