@@ -1,23 +1,11 @@
-# Python bytecode and test artifacts
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Node and GNOME extension build output
-node_modules/
-build/
-dist/
-*.compiled
-*.zip
-
 # Local tool and editor state
-.codex
+.codex/
 .idea/
 .vscode/
 *.swp
 *.swo
+__pycache__/
+*.pyc
 
 # Operating system files
 .DS_Store

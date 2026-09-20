@@ -8,8 +8,7 @@ fi
 
 # Zsh state
 _zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
-_zsh_data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/zsh"
-_zsh_plugin_dir="${ZSH_PLUGIN_DIR:-$_zsh_data_dir/plugins}"
+_zsh_plugin_dir="${ZSH_PLUGIN_DIR:-$HOME/.local/share/zsh/plugins}"
 mkdir -p "$_zsh_cache_dir" 2>/dev/null || _zsh_cache_dir="$HOME"
 
 # Prompt
@@ -17,8 +16,12 @@ if command -v starship >/dev/null 2>&1 && [[ "${TERM:-}" != dumb ]]; then
   eval "$(starship init zsh)"
 fi
 
-# ls
-alias ls='ls --color=auto --group-directories-first'
+# ls: use supported color options on GNU and BSD implementations.
+if command ls --color=auto --group-directories-first /dev/null >/dev/null 2>&1; then
+  alias ls='ls --color=auto --group-directories-first'
+elif command ls -G /dev/null >/dev/null 2>&1; then
+  alias ls='ls -G'
+fi
 alias l='ls -CF'
 alias la='ls -A'
 alias ll='ls -alFh'
@@ -54,16 +57,6 @@ gacp() {
   git add -u && git commit -m "$msg" && git push
 }
 
-# RAPL power limit
-_rapl_restore_script=/usr/local/sbin/restore-cpu-rapl-limits
-if [[ -L "$_rapl_restore_script" && -f "$_rapl_restore_script" ]]; then
-  _rapl_restore_target="$(readlink -f "$_rapl_restore_script" 2>/dev/null)"
-  if [[ "$_rapl_restore_target" == */rapl-power-limit/usr/local/sbin/restore-cpu-rapl-limits ]]; then
-    alias rapl-restore='sudo bash /usr/local/sbin/restore-cpu-rapl-limits'
-  fi
-fi
-unset _rapl_restore_script _rapl_restore_target
-
 # History
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=10000
@@ -85,11 +78,7 @@ zmodload zsh/complist 2>/dev/null || true
 autoload -Uz compinit
 compinit -d "$_zsh_cache_dir/zcompdump-${ZSH_VERSION}"
 
-# Plugins. User-managed clones are preferred, followed by Homebrew and distro packages.
-_zsh_brew_prefix=
-if command -v brew >/dev/null 2>&1; then
-  _zsh_brew_prefix="$(brew --prefix 2>/dev/null)"
-fi
+# Plugins come from the pinned Nix inputs or zsh-plugin-sync in Stow mode.
 
 _zsh_source_first() {
   local name="$1"
@@ -110,39 +99,28 @@ _zsh_source_first() {
 
 _zsh_source_first fzf-tab \
   "$_zsh_plugin_dir/fzf-tab/fzf-tab.plugin.zsh" \
-  "$_zsh_plugin_dir/fzf-tab/fzf-tab.zsh" \
-  "${_zsh_brew_prefix:+$_zsh_brew_prefix/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh}" \
-  /usr/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh \
-  /usr/share/zsh/plugins/fzf-tab/fzf-tab.zsh
+  "$_zsh_plugin_dir/fzf-tab/fzf-tab.zsh"
 
 _zsh_source_first zsh-autosuggestions \
   "$_zsh_plugin_dir/zsh-autosuggestions/zsh-autosuggestions.zsh" \
-  "$_zsh_plugin_dir/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh" \
-  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-autosuggestions/zsh-autosuggestions.zsh}" \
-  /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh \
-  /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+  "$_zsh_plugin_dir/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh"
 
 _zsh_source_first zsh-autopair \
   "$_zsh_plugin_dir/zsh-autopair/autopair.zsh" \
-  "$_zsh_plugin_dir/zsh-autopair/zsh-autopair.plugin.zsh" \
-  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-autopair/autopair.zsh}" \
-  /usr/share/zsh/plugins/zsh-autopair/autopair.zsh \
-  /usr/share/zsh/plugins/zsh-autopair/zsh-autopair.plugin.zsh
+  "$_zsh_plugin_dir/zsh-autopair/zsh-autopair.plugin.zsh"
 
 _zsh_source_first zsh-history-substring-search \
   "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.zsh" \
-  "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.plugin.zsh" \
-  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-history-substring-search/zsh-history-substring-search.zsh}" \
-  /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh \
-  /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.plugin.zsh
+  "$_zsh_plugin_dir/zsh-history-substring-search/zsh-history-substring-search.plugin.zsh"
 
 # fzf
 if command -v fzf >/dev/null 2>&1 && [[ -t 0 && -t 1 ]]; then
   source <(fzf --zsh 2>/dev/null)
 fi
 
-# Vim mode
-export KEYTIMEOUT=10
+# Vim mode. KEYTIMEOUT is in hundredths of a second; 20 keeps Esc responsive
+# without making Alt key sequences fragile over SSH or WSL2.
+export KEYTIMEOUT=20
 bindkey -v
 
 autoload -Uz edit-command-line
@@ -193,6 +171,8 @@ zle-line-finish() {
 }
 zle -N zle-line-finish
 
+# Shell editing: Esc enters normal mode, v opens the command in Vim, and
+# Ctrl-r/Ctrl-t/Alt-c use fzf when available. Arrow history search is optional.
 for _keymap in viins vicmd; do
   bindkey -M "$_keymap" "^[[1;5C" forward-word
   bindkey -M "$_keymap" "^[[1;5D" backward-word
@@ -222,23 +202,10 @@ _zsh_bind_widget viins "^F" autosuggest-accept
 unset -f _zsh_bind_widget _zsh_bind_widget_all_keymaps
 unset _keymap
 
-# syswatch
-if [[ -r "$HOME/.scripts/syswatch.zsh" ]]; then
-  source "$HOME/.scripts/syswatch.zsh"
-fi
-
-# obsidian movie entry
-if [[ -r "$HOME/.scripts/obsidian_movie_entry.zsh" ]]; then
-  source "$HOME/.scripts/obsidian_movie_entry.zsh"
-fi
-
 # Syntax highlighting is loaded last so it can wrap custom ZLE widgets.
 _zsh_source_first zsh-syntax-highlighting \
   "$_zsh_plugin_dir/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" \
-  "$_zsh_plugin_dir/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh" \
-  "${_zsh_brew_prefix:+$_zsh_brew_prefix/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh}" \
-  /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh \
-  /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  "$_zsh_plugin_dir/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh"
 
 unset -f _zsh_source_first
-unset _zsh_brew_prefix _zsh_cache_dir _zsh_data_dir _zsh_plugin_dir
+unset _zsh_cache_dir _zsh_plugin_dir

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-plugin_dir="${ZSH_PLUGIN_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zsh/plugins}"
+plugin_dir="${ZSH_PLUGIN_DIR:-$HOME/.local/share/zsh/plugins}"
 
 require_command() {
   local command_name="$1"
@@ -15,27 +15,47 @@ require_command() {
 sync_plugin() {
   local name="$1"
   local url="$2"
+  local revision="$3"
   local destination="$plugin_dir/$name"
+  local origin
 
-  if [[ -d "$destination/.git" ]]; then
-    printf 'Updating %s\n' "$name"
-    git -C "$destination" pull --ff-only --prune
-  elif [[ -e "$destination" ]]; then
+  if [[ -L "$destination" ]]; then
+    printf 'Skipping %s: managed through a symlink\n' "$name"
+    return 0
+  fi
+  if [[ -e "$destination" ]] && ! git -C "$destination" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     printf 'error: %s exists but is not a git checkout\n' "$destination" >&2
     return 1
-  else
+  fi
+  if [[ ! -e "$destination" ]]; then
     printf 'Cloning %s\n' "$name"
     git clone --depth 1 "$url" "$destination"
   fi
+
+  origin=$(git -C "$destination" remote get-url origin)
+  if [[ "$origin" != "$url" ]]; then
+    printf 'error: %s has a different origin: %s\n' "$name" "$origin" >&2
+    return 1
+  fi
+  if [[ "$(git -C "$destination" rev-parse HEAD 2>/dev/null || true)" == "$revision" ]]; then
+    printf '%s is already at %s\n' "$name" "$revision"
+    return 0
+  fi
+
+  printf 'Pinning %s to %s\n' "$name" "$revision"
+  git -C "$destination" fetch --depth 1 origin "$revision"
+  git -C "$destination" checkout --detach "$revision"
 }
 
 require_command git
 mkdir -p "$plugin_dir"
 
-sync_plugin fzf-tab https://github.com/Aloxaf/fzf-tab.git
-sync_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
-sync_plugin zsh-autopair https://github.com/hlissner/zsh-autopair.git
-sync_plugin zsh-history-substring-search https://github.com/zsh-users/zsh-history-substring-search.git
-sync_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
+# BEGIN LOCKED PLUGINS -- generated from flake.lock by bootstrap/sync-plugin-pins.py
+sync_plugin fzf-tab https://github.com/Aloxaf/fzf-tab.git 24105b15714bfec37989ed5c5b6e60f572253019
+sync_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git 85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5
+sync_plugin zsh-autopair https://github.com/hlissner/zsh-autopair.git 449a7c3d095bc8f3d78cf37b9549f8bb4c383f3d
+sync_plugin zsh-history-substring-search https://github.com/zsh-users/zsh-history-substring-search.git a0bdb0d47dbaba31dba2db7af8c48a5d9c74049a
+sync_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git 0bfcb582e71d3abe604ce67bc0fe5a21f377507e
+# END LOCKED PLUGINS
 
 printf 'Zsh plugins are ready in %s\n' "$plugin_dir"

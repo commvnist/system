@@ -1,66 +1,78 @@
 # system
 
-Personal Arch Linux GNOME system configuration, managed as GNU Stow packages.
-This repository contains the dotfiles, local GNOME Shell extensions, scripts,
-and host notes I use on my GNOME Arch install.
+Vim-first shell and editor configuration for macOS and Linux, including WSL2.
+The pinned Nix flake installs the tools and Zsh plugins with Home Manager.
+GNU Stow provides a config-only fallback when Nix is unavailable.
 
-Most top-level package directories mirror paths relative to `$HOME`. For example,
-`kitty/.config/kitty/kitty.conf` becomes `~/.config/kitty/kitty.conf` after
-stowing the `kitty` package. Root-target packages are explicitly documented.
-Boot-critical systemd packages must be copied as real files onto `/` rather
-than left as symlinks into this repository.
+The [keyboard shortcut guide](docs/keybindings.md) explains Vim, tmux, and
+Zsh navigation in one place.
 
-## Install
+## Packages
 
-Install the common tooling:
+- `zsh`: shell configuration and optional plugin sync helper.
+- `starship`: prompt configuration.
+- `tmux`: terminal multiplexer configuration.
+- `vim`: editor configuration.
 
-```sh
-sudo pacman -S --needed git stow zsh zsh-completions fzf kitty ghostty starship tmux vim python
-```
+## Fresh-host setup
 
-Stow user packages from the repository root:
-
-```sh
-stow --target="$HOME" --no-folding zsh
-stow --target="$HOME" --no-folding kitty
-stow --target="$HOME" --no-folding ghostty
-stow --target="$HOME" --no-folding mangohud
-stow --target="$HOME" --no-folding starship
-stow --target="$HOME" --no-folding tmux
-stow --target="$HOME" --no-folding vim
-stow --target="$HOME" --no-folding scripts
-stow --target="$HOME" --no-folding gnome-extensions
-```
-
-Install the RAPL power limit package using its documented copy-based procedure:
+Clone this repository and run these commands from its root as your normal user.
+If Nix is already installed, skip the first two commands. The [guided installer](bootstrap/install-nix.sh)
+prints its plan and checks build-account IDs before it changes the host; see
+the [installation notes](docs/nix/README.md) for macOS and WSL2 details.
 
 ```sh
-cd /home/naek/system
-less docs/rapl-power-limit/README.md
+bash bootstrap/install-nix.sh --dry-run
+bash bootstrap/install-nix.sh
+# Open a new shell after Nix installation.
+bash bootstrap/home.sh doctor
+bash bootstrap/home.sh check
+bash bootstrap/home.sh switch
 ```
 
-Use `stow -n -v <package>` for a dry run before linking a user package, or
-the package-specific install documentation before changing machine-level files.
+`doctor` reports the selected user, home, platform, Nix version, and broken
+links without downloading anything. `check` builds the pinned configuration
+and previews managed-file conflicts without changing your home. `switch`
+activates through the pinned Home Manager command. It leaves conflicting
+unmanaged files alone and tells you which paths to inspect. To see or restore
+Home Manager generations, run `bash bootstrap/home.sh status` or
+`bash bootstrap/home.sh rollback`. A rollback needs a previous generation.
 
-## Layout
+If you previously linked these packages with Stow, unlink them with
+`stow -D --target="$HOME" --no-folding zsh starship tmux vim` before switching.
+Nix-managed dotfiles are copied into the Nix store, so edit the repository and
+run `switch` again to apply changes. Changing your login shell is a separate
+host setting. The wrapper uses `--impure` only for the current username and
+home path; packages and plugins come from the committed `flake.lock`.
 
-- `gnome-extensions`: stowable GNOME Shell extension runtime files.
-- `gnome-extension-sources`: source and build tooling for generated GNOME Shell
-  extensions.
-- `docs/arch`: host-level Arch Linux setup notes that are not managed by Stow.
-- `ghostty`: Ghostty terminal configuration.
-- `kitty`: Kitty terminal configuration.
-- `mangohud`: MangoHud overlay configuration.
-- `rapl-power-limit`: root-target systemd units and script to restore and
-  monitor CPU MMIO RAPL package limits on the ThinkPad P16 Gen 2.
-- `scripts`: user scripts and shell functions.
-- `starship`: Starship prompt configuration.
-- `tmux`: tmux configuration.
-- `vim`: Vim configuration.
-- `zsh`: zsh shell configuration.
-- `docs`: concise documentation for the repository and each package area.
+The pinned 26.05 package set evaluates on Intel macOS, but [Nixpkgs warns](https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05)
+that 26.05 is its last release supporting `x86_64-darwin`. Keep that constraint
+in mind when updating the lock file on an Intel Mac.
 
-## Documentation
+## Stow fallback
 
-Start with [docs/README.md](docs/README.md). Package-specific documentation is
-kept under `docs/<package>/`.
+Install Git, GNU Stow, zsh, Starship, tmux, and Vim with your platform's package
+manager. `fzf` is optional; the Zsh configuration uses it when available.
+
+From the repository root, preview and then stow the packages you want:
+
+```sh
+stow -n -v --target="$HOME" --no-folding zsh starship tmux vim
+stow --target="$HOME" --no-folding zsh starship tmux vim
+```
+
+The Zsh package includes a plugin sync helper pinned to the revisions in
+`flake.lock`. Run `./zsh/.local/bin/zsh-plugin-sync` after linking. Stow links
+the configuration but does not pin the platform packages themselves. Changes
+to the linked files take effect without a Nix switch. See the [Zsh notes](docs/zsh/README.md).
+
+## Updating and verification
+
+`bash bootstrap/update.sh [input ...]` updates selected flake inputs (or all
+inputs when none are named), regenerates the Stow plugin pins, builds the native
+Home Manager check, and evaluates all supported systems. Review the changes to
+`flake.lock` and the helper before running `switch`. The update command does
+not activate your home and needs Python 3. The [validation guide](docs/nix/README.md#validation-and-recovery)
+covers tests, first-host smoke checks, and rollback.
+
+Package notes are indexed in [docs/README.md](docs/README.md).

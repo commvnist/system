@@ -1,44 +1,35 @@
 # zsh
 
-GNU Stow package for zsh configuration.
+GNU Stow package for zsh configuration. Install zsh and GNU Stow with your
+platform's package manager. Starship and `fzf` are optional; `.zshrc` loads
+them only when available.
 
-## Dependencies
-
-```sh
-sudo pacman -S --needed git stow zsh zsh-completions starship fzf
-```
-
-The `.zshrc` can load plugins from user-managed git clones, Homebrew, or distro
-packages. On Arch, use the repo helper to install the complete plugin set under
-`${XDG_DATA_HOME:-~/.local/share}/zsh/plugins`:
+The pinned Nix setup provides the plugins automatically. For Stow-only setup,
+the configuration loads plugins from user-managed Git clones at the exact
+revisions in `flake.lock`. It does not load arbitrary Homebrew or distribution
+plugin versions. To install those revisions under
+`~/.local/share/zsh/plugins`, run:
 
 ```sh
 ./zsh/.local/bin/zsh-plugin-sync
 ```
 
-This avoids requiring an AUR helper for plugins that are not in the official
-repositories.
-
-## Install
-
-From the repository root:
+The helper requires Git and network access. Its revisions are generated from
+`flake.lock`, and it leaves symlinked Nix-managed plugins alone. From the
+repository root, preview
+and install the package with:
 
 ```sh
-stow --target="$HOME" --no-folding zsh scripts starship
+stow -n -v --target="$HOME" --no-folding zsh
+stow --target="$HOME" --no-folding zsh
 ```
 
-This links:
-
-- `zsh/.zshrc` to `~/.zshrc`
-- `zsh/.local/bin/zsh-plugin-sync` to `~/.local/bin/zsh-plugin-sync`
-- script helpers under `~/.scripts`
-- Starship prompt configuration under `~/.config/starship.toml`
-
-The shell configuration is expected to load user functions and scripts from the
-stowed system packages as configured in `.zshrc`.
-
-To make zsh the login shell:
-
-```sh
-chsh -s "$(command -v zsh)"
-```
+This links `.zshrc` and `~/.local/bin/zsh-plugin-sync` into your home directory.
+Set `ZSH_PLUGIN_DIR` before running the helper and starting Zsh if you want a
+different plugin directory.
+`bash bootstrap/home.sh doctor` reports how many pinned plugins are present.
+To see individual missing plugin names during shell startup, set
+`ZSH_PLUGIN_DEBUG=1` temporarily.
+To make zsh your login shell where supported, run `chsh -s "$(command -v zsh)"`.
+The shell uses Vim editing mode. See the [shortcut guide](../keybindings.md)
+for its bindings.

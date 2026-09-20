@@ -4,6 +4,7 @@
 " Disable vi compatibility
 set nocompatible
 scriptencoding utf-8
+let mapleader = ' '
 
 " --- Editing behaviour ---
 set backspace=indent,eol,start   " Backspace over everything in insert mode
@@ -39,8 +40,8 @@ set ignorecase                   " Case-insensitive search by default
 set incsearch                    " Highlight matches as you type
 set smartcase                    " Case-sensitive search when pattern has capitals
 
-" Clear search highlight and run :diffupdate with <C-L>
-nnoremap <silent> <C-L> :nohlsearch<C-R>=has('diff')?'<Bar>diffupdate':''<CR><CR><C-L>
+" Space+h clears search highlights; Ctrl-l is reserved for split navigation.
+nnoremap <silent> <leader>h :nohlsearch<CR>
 
 " --- Scrolling ---
 set scrolloff=1                  " Keep 1 line visible above/below cursor
@@ -155,6 +156,36 @@ endif
 " the deletion rather than the entire insert session.
 inoremap <C-U> <C-G>u<C-U>
 inoremap <C-W> <C-G>u<C-W>
+
+" --- Window navigation ---
+" Ctrl-h/j/k/l moves between Vim splits and crosses into tmux at an edge.
+" In insert mode, Ctrl-h remains Backspace and Ctrl-j remains a newline.
+function! s:NavigateWindow(direction) abort
+  let l:before = winnr()
+  execute 'wincmd ' . a:direction
+  if winnr() != l:before || empty($TMUX) || !executable('tmux')
+    return
+  endif
+
+  let l:tmux_direction = get({'h': 'L', 'j': 'D', 'k': 'U', 'l': 'R', 'p': 'l'}, a:direction, '')
+  if !empty(l:tmux_direction)
+    call system('tmux select-pane -' . l:tmux_direction)
+  endif
+endfunction
+
+nnoremap <silent> <C-h> :call <SID>NavigateWindow('h')<CR>
+nnoremap <silent> <C-j> :call <SID>NavigateWindow('j')<CR>
+nnoremap <silent> <C-k> :call <SID>NavigateWindow('k')<CR>
+nnoremap <silent> <C-l> :call <SID>NavigateWindow('l')<CR>
+nnoremap <silent> <C-\> :call <SID>NavigateWindow('p')<CR>
+
+" Space mirrors the split keys in tmux; native Ctrl-w commands still work.
+nnoremap <silent> <leader>v :vsplit<CR>
+nnoremap <silent> <leader>s :split<CR>
+nnoremap <silent> <leader>w :write<CR>
+nnoremap <silent> <leader>q :quit<CR>
+nnoremap <silent> [b :bprevious<CR>
+nnoremap <silent> ]b :bnext<CR>
 
 " --- Diff helper ---
 if exists(":DiffOrig") != 2
