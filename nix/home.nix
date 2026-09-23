@@ -1,4 +1,31 @@
-{ pkgs, inputs, config, ... }: {
+{ pkgs, inputs, config, ... }:
+let
+  # Nixpkgs 26.05 still ships an older mise. Pin the official release for
+  # each supported host so project tasks use the same version everywhere.
+  miseVersion = "2026.9.12";
+  miseReleases = {
+    x86_64-linux = { asset = "linux-x64-musl"; hash = "sha256-5Zo4aDydd24OpsezXJgp3pFbt98V0W0L9okK+gJ4vXw="; };
+    aarch64-linux = { asset = "linux-arm64-musl"; hash = "sha256-LSmCsS96E4lKqIJy5M02DmhZH+EFtDz/KbGsRYjG/oM="; };
+    x86_64-darwin = { asset = "macos-x64"; hash = "sha256-+h41RW8eJ6RVWhzOyC1TZ9cDfztPRtSLg8SjvOtNePI="; };
+    aarch64-darwin = { asset = "macos-arm64"; hash = "sha256-8g18xVWlsO57ilBKy8JYO+GwhI1kEVz76EEZzrcFAls="; };
+  };
+  release = miseReleases.${pkgs.stdenv.hostPlatform.system};
+  misePackage = pkgs.stdenvNoCC.mkDerivation {
+    pname = "mise";
+    version = miseVersion;
+    src = pkgs.fetchurl {
+      url = "https://github.com/jdx/mise/releases/download/v${miseVersion}/mise-v${miseVersion}-${release.asset}";
+      inherit (release) hash;
+    };
+    dontUnpack = true;
+    dontStrip = true;
+    installPhase = ''
+      mkdir -p "$out/bin"
+      cp "$src" "$out/bin/mise"
+      chmod 755 "$out/bin/mise"
+    '';
+  };
+in {
   assertions = [
     {
       assertion = config.home.username != "" && config.home.homeDirectory != "";
@@ -59,6 +86,7 @@
 
   programs.mise = {
     enable = true;
+    package = misePackage;
     enableZshIntegration = false; # mise run works without shell activation.
   };
 

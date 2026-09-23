@@ -4,7 +4,8 @@ Vim-style shell and Neovim configuration for macOS and Linux, including WSL2.
 The pinned Nix flake installs the tools, language servers, syntax parsers, and
 Zsh/Neovim plugins with Home Manager.
 Home Manager also installs every dotfile; the files in this repository are
-their sources, and `flake.lock` pins the tool and plugin versions.
+their sources. `flake.lock` pins most tool and plugin versions; mise 2026.9.12
+is pinned by release checksum in `nix/home.nix`.
 
 The [keyboard shortcut guide](docs/keybindings.md) explains Neovim, tmux, and
 Zsh navigation in one place. The [CLI tools guide](docs/tools/README.md)
@@ -74,7 +75,8 @@ symlink; remove it if it points into this repository.
 Nix-managed dotfiles are copied into the Nix store, so edit the repository and
 run `switch` again to apply changes. Changing your login shell is a separate
 host setting. The wrapper uses `--impure` only for the current username and
-home path; packages and plugins come from the committed `flake.lock`.
+home path; packages and plugins come from the committed `flake.lock` and the
+mise release hashes in `nix/home.nix`.
 
 The pinned 26.05 package set evaluates on Intel macOS, but [Nixpkgs warns](https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05)
 that 26.05 is its last release supporting `x86_64-darwin`. Keep that constraint

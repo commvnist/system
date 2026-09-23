@@ -1,6 +1,7 @@
 # CLI tools
 
-Home Manager installs these tools from the pinned `flake.lock`. It also links
+Home Manager installs these tools from the pinned `flake.lock`, with mise
+2026.9.12 pinned separately by release hashes in `nix/home.nix`. It also links
 Atuin's local-only settings and the nix-direnv helper. After a switch, open a
 new Zsh session to load the Atuin and direnv hooks.
 

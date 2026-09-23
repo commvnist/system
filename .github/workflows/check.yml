@@ -78,7 +78,7 @@ jobs:
           atuin --version
           sesh --version
           python3 --version
-          mise --version
+          mise --version | grep -q '^2026\.9\.12 '
           mise trust mise.toml
           mise tasks ls
           direnv version
